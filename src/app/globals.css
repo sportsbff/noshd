@@ -1,26 +1,123 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  /* ---- Electra Palette ---- */
+  --noshd-white: #FFFFFF;
+  --noshd-bg-alt: #F4F7FC;
+  --noshd-cream: #F4F7FC;
+  --noshd-charcoal: #1C1917;
+  --noshd-ink: #1C1917;
+  --noshd-muted: #57534E;
+  --noshd-faint: #A8A29E;
+
+  /* ---- Electra Colors ---- */
+  --noshd-tangerine: #FF5500;
+  --noshd-electra: #1010FF;
+  --noshd-firecracker: #FFB000;
+  --noshd-azure: #A4DDFF;
+  --noshd-whisper: #F4F7FC;
+  --noshd-banana: #FFF597;
+
+  /* ---- Aliases ---- */
+  --noshd-accent: #FF5500;
+  --noshd-accent-bg: #FFF2EB;
+  --noshd-vermilion: #FF5500;
+  --noshd-vermilion-light: #FFF2EB;
+  --noshd-cobalt: #1010FF;
+  --noshd-saffron: #FFF597;
+  --noshd-jade: #1010FF;
+
+  /* ---- Grey scale ---- */
+  --noshd-grey-600: #57534E;
+  --noshd-grey-400: #A8A29E;
+  --noshd-grey-200: #E4E7EC;
+  --noshd-grey-100: #F4F7FC;
+
+  /* ---- Borders ---- */
+  --noshd-border: #E4E7EC;
+  --noshd-border-faint: #F0F2F5;
+
+  /* ---- Radii ---- */
+  --radius-sm: 4px;
+  --radius-md: 4px;
+}
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body);
+  background-color: var(--noshd-white);
+  color: var(--noshd-charcoal);
+  line-height: 1.6;
+}
+
+::selection {
+  background-color: var(--noshd-banana);
+  color: var(--noshd-ink);
+}
+
+/* ---- Grid texture (tangerine sections only) ---- */
+.grid-texture {
+  background-image: linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+  background-size: 36px 36px;
+}
+
+/* ---- Animations ---- */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes drawCircle {
+  to { stroke-dashoffset: 0; }
+}
+
+/* ---- Scrollbar ---- */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-thumb { background: #E4E7EC; border-radius: 3px; }
+
+/* ---- Focus styles — tangerine ---- */
+input:focus {
+  outline: none;
+  border-color: #FF5500 !important;
+  box-shadow: 0 0 0 2px rgba(255, 85, 0, 0.12);
+}
+
+/* ---- Leaflet overrides ---- */
+.leaflet-container {
+  font-family: var(--font-body) !important;
+}
+
+/* ---- Responsive ---- */
+
+/* Mobile */
+@media (max-width: 600px) {
+  .nav-desktop { display: none !important; }
+  .nav-mobile-toggle { display: flex !important; }
+  .nav-chicago { display: none; }
+  .footer-grid { grid-template-columns: 1fr !important; gap: 20px !important; text-align: center; }
+  .tab-nav { gap: 16px !important; padding: 0 16px !important; }
+  .tab-nav::-webkit-scrollbar { display: none; }
+}
+
+/* Desktop */
+@media (min-width: 601px) {
+  .nav-desktop { display: flex !important; }
+  .nav-mobile-toggle { display: none !important; }
+  .nav-mobile-menu { display: none !important; }
 }
