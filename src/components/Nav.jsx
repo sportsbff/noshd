@@ -1,8 +1,8 @@
 "use client";
 import { useState } from "react";
-import { User, ChevronDown, Bookmark, LogOut, Menu, X, MapPin } from "lucide-react";
+import { User, ChevronDown, Bookmark, LogOut, Menu, X, MapPin, Settings } from "lucide-react";
 
-export default function Nav({ user, savedCount, onShowAuth, onGoHome, onMyRestaurants, onSignOut }) {
+export default function Nav({ user, savedCount, onShowAuth, onGoHome, onMyRestaurants, onAccount, onSignOut }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [cityOpen, setCityOpen] = useState(false);
@@ -54,6 +54,9 @@ export default function Nav({ user, savedCount, onShowAuth, onGoHome, onMyRestau
                         <Bookmark size={13} />my restaurants
                         {savedCount > 0 && <span style={{ background: "#FF5500", color: "white", fontSize: "10px", padding: "1px 6px", borderRadius: "10px" }}>{savedCount}</span>}
                       </button>
+                      <button onClick={() => { onAccount?.(); setMenuOpen(false); }} style={{ width: "100%", padding: "11px 16px", border: "none", background: "none", cursor: "pointer", textAlign: "left", fontSize: "13px", display: "flex", alignItems: "center", gap: "8px", color: "var(--noshd-charcoal)", fontWeight: 600, fontFamily: "var(--font-body)", textTransform: "lowercase", borderTop: "1px solid var(--noshd-border)" }}>
+                        <Settings size={13} />my account
+                      </button>
                       <button onClick={() => { onSignOut(); setMenuOpen(false); }} style={{ width: "100%", padding: "11px 16px", border: "none", background: "none", cursor: "pointer", textAlign: "left", fontSize: "13px", display: "flex", alignItems: "center", gap: "8px", color: "var(--noshd-muted)", borderTop: "1px solid var(--noshd-border)", fontFamily: "var(--font-body)", textTransform: "lowercase" }}>
                         <LogOut size={13} />sign out
                       </button>
@@ -85,6 +88,10 @@ export default function Nav({ user, savedCount, onShowAuth, onGoHome, onMyRestau
                       style={{ width: "100%", padding: "10px 14px", background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "14px", color: "#FFFFFF", fontWeight: 600, fontFamily: "var(--font-body)", textTransform: "lowercase", textAlign: "left", display: "flex", alignItems: "center", gap: "8px" }}>
                       <Bookmark size={14} />my restaurants
                       {savedCount > 0 && <span style={{ background: "rgba(0,0,0,0.3)", color: "#FFF597", fontSize: "10px", padding: "2px 8px", borderRadius: "10px" }}>{savedCount}</span>}
+                    </button>
+                    <button onClick={() => { onAccount?.(); setMobileMenuOpen(false); }}
+                      style={{ width: "100%", padding: "10px 14px", background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "14px", color: "#FFFFFF", fontWeight: 600, fontFamily: "var(--font-body)", textTransform: "lowercase", textAlign: "left", display: "flex", alignItems: "center", gap: "8px" }}>
+                      <Settings size={14} />my account
                     </button>
                     <button onClick={() => { onSignOut(); setMobileMenuOpen(false); }}
                       style={{ width: "100%", padding: "10px 14px", background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "14px", color: "rgba(255,255,255,0.7)", fontFamily: "var(--font-body)", textTransform: "lowercase", textAlign: "left", display: "flex", alignItems: "center", gap: "8px" }}>

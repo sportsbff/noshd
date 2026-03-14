@@ -15,6 +15,29 @@ export default function CountryCustomizer({ selected, onApply, onClose }) {
   };
   const match = (c) => !search || c.toLowerCase().includes(search.toLowerCase());
 
+  const toggleRegion = (countries) => {
+    const n = new Set(draft);
+    const vis = countries.filter(match);
+    const allSelected = vis.every(c => n.has(c));
+    if (allSelected) {
+      vis.forEach(c => n.delete(c));
+      if (n.size < 3) return; // don't go below min
+    } else {
+      vis.forEach(c => { if (n.size < 22) n.add(c); });
+    }
+    setDraft(n);
+  };
+
+  const selectAll = () => {
+    const all = Object.values(REGIONS).flat().filter(match);
+    const n = new Set(all.slice(0, 22));
+    setDraft(n);
+  };
+
+  const deselectAll = () => {
+    setDraft(new Set());
+  };
+
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ background: "#fff", borderRadius: "4px", width: "min(460px,95vw)", maxHeight: "85vh", display: "flex", flexDirection: "column", boxShadow: "0 24px 64px rgba(0,0,0,0.3)", overflow: "hidden", fontFamily: "var(--font-body)" }}>
@@ -26,11 +49,21 @@ export default function CountryCustomizer({ selected, onApply, onClose }) {
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--noshd-muted)" }}><X size={18} /></button>
         </div>
 
-        <div style={{ padding: "8px 20px", borderBottom: "1px solid var(--noshd-border-faint)" }}>
+        <div style={{ padding: "8px 20px", borderBottom: "1px solid var(--noshd-border-faint)", display: "flex", flexDirection: "column", gap: "8px" }}>
           <div style={{ position: "relative" }}>
             <Search size={14} color="var(--noshd-faint)" style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)" }} />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="search countries..."
               style={{ width: "100%", padding: "8px 12px 8px 32px", border: "1.5px solid var(--noshd-border)", borderRadius: "4px", fontSize: "14px", outline: "none", boxSizing: "border-box", fontFamily: "var(--font-body)", color: "var(--noshd-charcoal)" }} />
+          </div>
+          <div style={{ display: "flex", gap: "6px" }}>
+            <button onClick={selectAll}
+              style={{ padding: "4px 10px", border: "1.5px solid var(--noshd-border)", borderRadius: "50px", background: "transparent", color: "var(--noshd-muted)", fontSize: "11px", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-body)", textTransform: "lowercase" }}>
+              select all
+            </button>
+            <button onClick={deselectAll}
+              style={{ padding: "4px 10px", border: "1.5px solid var(--noshd-border)", borderRadius: "50px", background: "transparent", color: "var(--noshd-muted)", fontSize: "11px", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-body)", textTransform: "lowercase" }}>
+              deselect all
+            </button>
           </div>
         </div>
 
@@ -40,18 +73,25 @@ export default function CountryCustomizer({ selected, onApply, onClose }) {
             if (!vis.length) return null;
             const isOpen = open.has(region);
             const sel = countries.filter(c => draft.has(c)).length;
+            const allRegionSelected = vis.every(c => draft.has(c));
             const emoji = region.split("  ")[0];
             const name = region.split("  ")[1];
             return (
               <div key={region}>
-                <button onClick={() => { const n = new Set(open); n.has(region) ? n.delete(region) : n.add(region); setOpen(n); }}
-                  style={{ width: "100%", background: "none", border: "none", cursor: "pointer", padding: "8px 20px", display: "flex", alignItems: "center", gap: "8px", textAlign: "left" }}>
-                  <span style={{ flex: 1, fontWeight: 700, fontSize: "13px", color: "var(--noshd-charcoal)", fontFamily: "var(--font-body)" }}>
-                    {emoji} {name}
-                  </span>
-                  <span style={{ fontSize: "11px", color: "var(--noshd-muted)" }}>{sel}/{countries.length}</span>
-                  {isOpen ? <ChevronUp size={14} color="var(--noshd-muted)" /> : <ChevronDown size={14} color="var(--noshd-muted)" />}
-                </button>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <button onClick={() => { const n = new Set(open); n.has(region) ? n.delete(region) : n.add(region); setOpen(n); }}
+                    style={{ flex: 1, background: "none", border: "none", cursor: "pointer", padding: "8px 20px", display: "flex", alignItems: "center", gap: "8px", textAlign: "left" }}>
+                    <span style={{ flex: 1, fontWeight: 700, fontSize: "13px", color: "var(--noshd-charcoal)", fontFamily: "var(--font-body)" }}>
+                      {emoji} {name}
+                    </span>
+                    <span style={{ fontSize: "11px", color: "var(--noshd-muted)" }}>{sel}/{countries.length}</span>
+                    {isOpen ? <ChevronUp size={14} color="var(--noshd-muted)" /> : <ChevronDown size={14} color="var(--noshd-muted)" />}
+                  </button>
+                  <button onClick={(e) => { e.stopPropagation(); toggleRegion(countries); }}
+                    style={{ padding: "3px 10px", marginRight: "12px", border: `1.5px solid ${allRegionSelected ? "var(--noshd-accent)" : "var(--noshd-border)"}`, borderRadius: "50px", background: allRegionSelected ? "var(--noshd-accent-bg)" : "transparent", color: allRegionSelected ? "var(--noshd-accent)" : "var(--noshd-faint)", fontSize: "10px", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-body)", textTransform: "lowercase", whiteSpace: "nowrap", flexShrink: 0 }}>
+                    {allRegionSelected ? "deselect" : "select all"}
+                  </button>
+                </div>
                 {isOpen && vis.map(c => {
                   const on = draft.has(c);
                   return (

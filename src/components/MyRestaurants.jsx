@@ -1,8 +1,9 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { ChevronDown, ChevronUp, List, MapPin, Star, Globe, X } from "lucide-react";
+import { ChevronDown, ChevronUp, List, MapPin, Star, Globe, X, SlidersHorizontal } from "lucide-react";
 import { COUNTRY_DATA, COORDS, HOOD_COORDS } from "@/data/countries";
 import { restKey } from "@/lib/utils";
+import RestaurantCard from "./RestaurantCard";
 
 const COUNTRY_COORDS = {
   Afghanistan:[33.9,-67.7],Albania:[41.3,20.2],Algeria:[36.8,3.0],Andorra:[42.5,1.5],
@@ -46,7 +47,7 @@ const COUNTRY_COORDS = {
   Zambia:[-15.4,28.3],Zimbabwe:[-17.8,31.1],
   "Antigua and Barbuda":[17.1,-61.8],"Congo (Republic)":[4.3,15.3],"Ivory Coast":[5.3,-4.0],
   "South Korea":[37.6,127.0],"North Korea":[39.0,125.8],"South Sudan":[4.9,31.6],
-  "East Timor":[-8.6,125.7],"Papua New Guinea":[-6.3,143.9],Fiji:[-17.8,178.1],
+  "East Timor":[-8.6,125.7],"Papua New Guinea":[-6.3,143.9],
   Samoa:[-13.8,-172.0],Tonga:[-21.2,-175.2],
 };
 
@@ -68,13 +69,32 @@ function loadLeaflet() {
   });
 }
 
-function LeafletMap({ entries, center, zoom, pinFn, height, onPinClick }) {
+function loadMarkerCluster() {
+  return new Promise((resolve) => {
+    if (window.L?.MarkerClusterGroup) { resolve(); return; }
+    const css1 = document.createElement("link");
+    css1.rel = "stylesheet";
+    css1.href = "https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css";
+    document.head.appendChild(css1);
+    const css2 = document.createElement("link");
+    css2.rel = "stylesheet";
+    css2.href = "https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css";
+    document.head.appendChild(css2);
+    const script = document.createElement("script");
+    script.src = "https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js";
+    script.onload = () => resolve();
+    document.head.appendChild(script);
+  });
+}
+
+function LeafletMap({ entries, center, zoom, pinFn, height, onPinClick, useCluster }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
-    loadLeaflet().then((L) => {
+    loadLeaflet().then(async (L) => {
+      if (useCluster) await loadMarkerCluster();
       if (cancelled || !containerRef.current) return;
       if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
       const map = L.map(containerRef.current, { scrollWheelZoom: true }).setView(center, zoom);
@@ -85,25 +105,56 @@ function LeafletMap({ entries, center, zoom, pinFn, height, onPinClick }) {
       }).addTo(map);
 
       const pins = pinFn(L, entries);
-      pins.forEach(({ marker, data }) => {
-        marker.addTo(map);
-        if (onPinClick) marker.on("click", () => onPinClick(data));
-      });
+
+      if (useCluster && L.MarkerClusterGroup) {
+        const clusterGroup = L.markerClusterGroup({
+          maxClusterRadius: 40,
+          iconCreateFunction: (cluster) => {
+            const count = cluster.getChildCount();
+            return L.divIcon({
+              html: `<div style="background:#FF5500;color:white;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:2px solid white;">${count}</div>`,
+              className: "",
+              iconSize: [32, 32],
+              iconAnchor: [16, 16],
+            });
+          },
+        });
+        pins.forEach(({ marker, data }) => {
+          if (onPinClick) marker.on("click", () => onPinClick(data));
+          clusterGroup.addLayer(marker);
+        });
+        map.addLayer(clusterGroup);
+      } else {
+        pins.forEach(({ marker, data }) => {
+          marker.addTo(map);
+          if (onPinClick) marker.on("click", () => onPinClick(data));
+        });
+      }
+
+      // Fit bounds to all pins
+      const coords = pins.map(p => p.marker.getLatLng());
+      if (coords.length > 1) {
+        map.fitBounds(coords.map(c => [c.lat, c.lng]), { padding: [40, 40], maxZoom: 14 });
+      }
 
       setTimeout(() => map.invalidateSize(), 100);
     });
     return () => { cancelled = true; if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; } };
-  }, [entries, center, zoom]);
+  }, [entries, center, zoom, useCluster]);
 
   return <div ref={containerRef} style={{ width: "100%", height: `${height}px`, borderRadius: "4px" }} />;
 }
 
 export default function MyRestaurants({ user, saved, onSave, onRemove, onBack }) {
   const [view, setView] = useState("list");
-  const [subView, setSubView] = useState("status"); // list: "status"|"country", map: "world"|"local"
+  const [subView, setSubView] = useState("status");
   const [expandedKey, setExpandedKey] = useState(null);
+  const [selectedEntry, setSelectedEntry] = useState(null); // for popup
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [selectedHood, setSelectedHood] = useState(null);
+  const [showMapFilter, setShowMapFilter] = useState(false);
+  const [mapStatusFilter, setMapStatusFilter] = useState("all"); // "all"|"favorite"|"visited"|"want"
+  const [mapCountryFilter, setMapCountryFilter] = useState([]); // empty = show all
 
   const entries = Object.entries(saved).map(([key, data]) => {
     const [c, ...rest] = key.split("||");
@@ -113,19 +164,25 @@ export default function MyRestaurants({ user, saved, onSave, onRemove, onBack })
     return restaurant ? { key, country: c, restaurant, ...data } : null;
   }).filter(Boolean);
 
+  // Apply map filters
+  const filteredEntries = entries.filter(e => {
+    if (mapStatusFilter !== "all" && e.status !== mapStatusFilter) return false;
+    if (mapCountryFilter.length > 0 && !mapCountryFilter.includes(e.country)) return false;
+    return true;
+  });
+
   const favs = entries.filter(e => e.status === "favorite");
   const visited = entries.filter(e => e.status === "visited");
   const wantToGo = entries.filter(e => e.status === "want");
 
-  // Group by country
   const byCountry = {};
   entries.forEach(e => {
     if (!byCountry[e.country]) byCountry[e.country] = [];
     byCountry[e.country].push(e);
   });
   const sortedCountries = Object.keys(byCountry).sort();
+  const allCountries = [...new Set(entries.map(e => e.country))].sort();
 
-  // Group by hood
   const byHood = {};
   entries.forEach(e => {
     const hood = e.restaurant.neighborhood;
@@ -133,22 +190,22 @@ export default function MyRestaurants({ user, saved, onSave, onRemove, onBack })
     byHood[hood].push(e);
   });
 
-  // Reset sub-selections when switching views
   const handleViewChange = (v) => {
     setView(v);
     setSubView(v === "list" ? "status" : "world");
     setSelectedCountry(null);
     setSelectedHood(null);
+    setSelectedEntry(null);
     setExpandedKey(null);
   };
 
   if (!entries.length) {
     return (
       <div style={{ maxWidth: "600px", margin: "0 auto", padding: "40px 20px", textAlign: "center" }}>
-        <div style={{ fontSize: "48px", marginBottom: "16px" }}>📍</div>
-        <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 400, fontSize: "26px", color: "var(--noshd-charcoal)", marginBottom: "8px" }}>no saved restaurants yet</h2>
-        <p style={{ fontSize: "14px", lineHeight: 1.7, color: "var(--noshd-muted)", fontFamily: "var(--font-body)", marginBottom: "20px" }}>
-          as you explore, mark restaurants as visited or favorite. they&apos;ll appear here with your ratings and notes.
+        <div style={{ fontSize: "32px", marginBottom: "10px" }}>📍</div>
+        <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 400, fontSize: "20px", color: "var(--noshd-charcoal)", marginBottom: "6px" }}>no saved restaurants yet</h2>
+        <p style={{ fontSize: "13px", lineHeight: 1.5, color: "var(--noshd-muted)", fontFamily: "var(--font-body)", marginBottom: "16px" }}>
+          explore and save restaurants to track where you&apos;ve noshd.
         </p>
         <button onClick={onBack}
           style={{ padding: "10px 24px", background: "var(--noshd-charcoal)", color: "white", border: "2px solid var(--noshd-charcoal)", borderRadius: "4px", fontSize: "14px", fontWeight: 700, cursor: "pointer", fontFamily: "var(--font-body)", textTransform: "lowercase" }}>
@@ -248,36 +305,51 @@ export default function MyRestaurants({ user, saved, onSave, onRemove, onBack })
       });
       const marker = L.marker(coords, { icon });
       marker.bindTooltip(`${COUNTRY_DATA[country]?.flag || ""} ${country} (${items.length})`, { direction: "top", offset: [0, -10] });
-      pins.push({ marker, data: country });
+      pins.push({ marker, data: { type: "country", country, items } });
     });
     return pins;
   };
 
   const localPinFn = (L, entries) => {
-    const grouped = {};
-    entries.forEach(e => {
-      const hood = e.restaurant.neighborhood;
-      if (!grouped[hood]) grouped[hood] = { items: [], countries: new Set() };
-      grouped[hood].items.push(e);
-      grouped[hood].countries.add(e.country);
-    });
     const pins = [];
-    Object.entries(grouped).forEach(([hood, { items, countries }]) => {
-      const coords = HOOD_COORDS[hood];
+    entries.forEach(e => {
+      const coords = COORDS[e.restaurant.neighborhood] || HOOD_COORDS[e.restaurant.neighborhood];
       if (!coords) return;
-      const flags = [...countries].map(c => COUNTRY_DATA[c]?.flag || "").join("");
+      const jitterLat = (Math.random() - 0.5) * 0.003;
+      const jitterLng = (Math.random() - 0.5) * 0.003;
       const icon = L.divIcon({
-        html: `<div style="font-size:18px;line-height:1;text-align:center;background:white;border-radius:6px;padding:2px 4px;border:1px solid #ccc;white-space:nowrap;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.15))">${flags}</div>`,
+        html: `<span style="font-size:22px;line-height:1;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.3));cursor:pointer;">📍</span>`,
         className: "",
-        iconSize: [null, 28],
-        iconAnchor: [15, 14],
+        iconSize: [24, 24],
+        iconAnchor: [12, 22],
       });
-      const marker = L.marker(coords, { icon });
-      marker.bindTooltip(`${hood} (${items.length})`, { direction: "top", offset: [0, -10] });
-      pins.push({ marker, data: hood });
+      const marker = L.marker([coords[0] + jitterLat, coords[1] + jitterLng], { icon });
+      marker.bindTooltip(`${COUNTRY_DATA[e.country]?.flag || ""} ${e.restaurant.name}`, { direction: "top", offset: [0, -10] });
+      pins.push({ marker, data: { type: "restaurant", entry: e } });
     });
     return pins;
   };
+
+  const handleMapPinClick = (data) => {
+    if (data.type === "country") {
+      setSelectedCountry(selectedCountry === data.country ? null : data.country);
+      setSelectedEntry(null);
+    } else if (data.type === "restaurant") {
+      setSelectedEntry(data.entry);
+    }
+  };
+
+  const mapFilterChip = (value, label) => (
+    <button onClick={() => setMapStatusFilter(value)}
+      style={{
+        padding: "4px 10px", border: `1.5px solid ${mapStatusFilter === value ? "var(--noshd-accent)" : "var(--noshd-border)"}`,
+        borderRadius: "50px", background: mapStatusFilter === value ? "var(--noshd-accent-bg)" : "transparent",
+        color: mapStatusFilter === value ? "var(--noshd-accent)" : "var(--noshd-muted)",
+        fontSize: "11px", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-body)", textTransform: "lowercase",
+      }}>
+      {label}
+    </button>
+  );
 
   return (
     <div style={{ maxWidth: "720px", margin: "0 auto", padding: "0 20px 60px", animation: "fadeUp 0.3s ease" }}>
@@ -293,19 +365,62 @@ export default function MyRestaurants({ user, saved, onSave, onRemove, onBack })
       </div>
 
       {/* Sub-toggle */}
-      <div style={{ display: "flex", alignItems: "center", gap: "4px", background: "var(--noshd-cream)", borderRadius: "4px", padding: "3px", width: "fit-content", marginBottom: "20px", border: "1px solid var(--noshd-border)" }}>
-        {view === "list" ? (
-          <>
-            <button onClick={() => { setSubView("status"); setExpandedKey(null); }} style={subToggleStyle(subView === "status")}>by status</button>
-            <button onClick={() => { setSubView("country"); setExpandedKey(null); }} style={subToggleStyle(subView === "country")}>by country</button>
-          </>
-        ) : (
-          <>
-            <button onClick={() => { setSubView("world"); setSelectedCountry(null); }} style={subToggleStyle(subView === "world")}>world map</button>
-            <button onClick={() => { setSubView("local"); setSelectedHood(null); }} style={subToggleStyle(subView === "local")}>local map</button>
-          </>
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "20px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "4px", background: "var(--noshd-cream)", borderRadius: "4px", padding: "3px", border: "1px solid var(--noshd-border)" }}>
+          {view === "list" ? (
+            <>
+              <button onClick={() => { setSubView("status"); setExpandedKey(null); }} style={subToggleStyle(subView === "status")}>by status</button>
+              <button onClick={() => { setSubView("country"); setExpandedKey(null); }} style={subToggleStyle(subView === "country")}>by country</button>
+            </>
+          ) : (
+            <>
+              <button onClick={() => { setSubView("world"); setSelectedCountry(null); setSelectedEntry(null); }} style={subToggleStyle(subView === "world")}>world map</button>
+              <button onClick={() => { setSubView("local"); setSelectedHood(null); setSelectedEntry(null); }} style={subToggleStyle(subView === "local")}>local map</button>
+            </>
+          )}
+        </div>
+        {view === "map" && (
+          <button onClick={() => setShowMapFilter(!showMapFilter)}
+            style={{ display: "flex", alignItems: "center", gap: "5px", padding: "5px 12px", border: `1.5px solid ${showMapFilter ? "var(--noshd-electra)" : "var(--noshd-border)"}`, borderRadius: "4px", background: showMapFilter ? "rgba(16,16,255,0.06)" : "transparent", color: showMapFilter ? "var(--noshd-electra)" : "var(--noshd-muted)", fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-body)", textTransform: "lowercase" }}>
+            <SlidersHorizontal size={12} /> customize map
+          </button>
         )}
       </div>
+
+      {/* Map filters */}
+      {view === "map" && showMapFilter && (
+        <div style={{ background: "#fff", border: "1px solid var(--noshd-border)", borderRadius: "4px", padding: "14px 16px", marginBottom: "16px", animation: "fadeUp 0.2s ease" }}>
+          <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--noshd-muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "8px", fontFamily: "var(--font-body)" }}>filter by status</div>
+          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "12px" }}>
+            {mapFilterChip("all", "all")}
+            {mapFilterChip("favorite", "⭐ favorites")}
+            {mapFilterChip("visited", "📍 visited")}
+            {mapFilterChip("want", "🔵 want to go")}
+          </div>
+          {allCountries.length > 1 && (
+            <>
+              <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--noshd-muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "8px", fontFamily: "var(--font-body)" }}>filter by country</div>
+              <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
+                <button onClick={() => setMapCountryFilter([])}
+                  style={{ padding: "4px 10px", border: `1.5px solid ${mapCountryFilter.length === 0 ? "var(--noshd-accent)" : "var(--noshd-border)"}`, borderRadius: "50px", background: mapCountryFilter.length === 0 ? "var(--noshd-accent-bg)" : "transparent", color: mapCountryFilter.length === 0 ? "var(--noshd-accent)" : "var(--noshd-muted)", fontSize: "11px", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-body)" }}>
+                  all
+                </button>
+                {allCountries.map(c => {
+                  const active = mapCountryFilter.includes(c);
+                  return (
+                    <button key={c} onClick={() => {
+                      setMapCountryFilter(prev => active ? prev.filter(x => x !== c) : [...prev, c]);
+                    }}
+                      style={{ padding: "4px 10px", border: `1.5px solid ${active ? "var(--noshd-accent)" : "var(--noshd-border)"}`, borderRadius: "50px", background: active ? "var(--noshd-accent-bg)" : "transparent", color: active ? "var(--noshd-accent)" : "var(--noshd-muted)", fontSize: "11px", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-body)" }}>
+                      {COUNTRY_DATA[c]?.flag} {c}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* LIST VIEW */}
       {view === "list" && subView === "status" && (
@@ -340,12 +455,12 @@ export default function MyRestaurants({ user, saved, onSave, onRemove, onBack })
         <div style={{ background: "#fff", borderRadius: "4px", border: "1px solid var(--noshd-border)", padding: "20px" }}>
           <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--noshd-muted)", textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: "12px", fontFamily: "var(--font-body)" }}>🌍 saved restaurants around the world</div>
           <LeafletMap
-            entries={entries}
+            entries={filteredEntries}
             center={[20, 0]}
             zoom={2}
-            height={450}
+            height={350}
             pinFn={worldPinFn}
-            onPinClick={(country) => setSelectedCountry(selectedCountry === country ? null : country)}
+            onPinClick={handleMapPinClick}
           />
           {selectedCountry && byCountry[selectedCountry] && (
             <div style={{ marginTop: "16px", animation: "fadeUp 0.2s ease" }}>
@@ -371,25 +486,41 @@ export default function MyRestaurants({ user, saved, onSave, onRemove, onBack })
         <div style={{ background: "#fff", borderRadius: "4px", border: "1px solid var(--noshd-border)", padding: "20px" }}>
           <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--noshd-muted)", textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: "12px", fontFamily: "var(--font-body)" }}>📍 my saved restaurants in chicago</div>
           <LeafletMap
-            entries={entries}
+            entries={filteredEntries}
             center={[41.88, -87.65]}
             zoom={11}
-            height={450}
+            height={350}
             pinFn={localPinFn}
-            onPinClick={(hood) => setSelectedHood(selectedHood === hood ? null : hood)}
+            onPinClick={handleMapPinClick}
+            useCluster
           />
-          {selectedHood && byHood[selectedHood] && (
-            <div style={{ marginTop: "16px", animation: "fadeUp 0.2s ease" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
-                <div style={{ fontSize: "13px", fontWeight: 700, color: "var(--noshd-charcoal)", fontFamily: "var(--font-display)" }}>{selectedHood} — {byHood[selectedHood].length} saved</div>
-                <button onClick={() => setSelectedHood(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--noshd-muted)", padding: "4px" }}><X size={14} /></button>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                {byHood[selectedHood].map(e => renderEntry(e))}
-              </div>
+          <div style={{ fontSize: "11px", color: "var(--noshd-faint)", fontFamily: "var(--font-body)", textAlign: "center", marginTop: "12px" }}>click a pin to see details &middot; zoom in to unfurl clusters</div>
+        </div>
+      )}
+
+      {/* Popup overlay for selected restaurant from map */}
+      {selectedEntry && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 250, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", animation: "fadeUp 0.2s ease" }}
+          onClick={(e) => { if (e.target === e.currentTarget) setSelectedEntry(null); }}>
+          <div style={{ background: "#fff", borderRadius: "8px", boxShadow: "0 8px 32px rgba(0,0,0,0.2)", border: "1px solid var(--noshd-border)", maxHeight: "80vh", overflowY: "auto", width: "min(520px, 92vw)", margin: "20px" }}>
+            <div style={{ position: "sticky", top: 0, background: "#fff", padding: "12px 16px 0", display: "flex", justifyContent: "flex-end", zIndex: 2, borderRadius: "8px 8px 0 0" }}>
+              <button onClick={() => setSelectedEntry(null)}
+                style={{ background: "var(--noshd-cream)", border: "none", borderRadius: "50%", width: "28px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                <X size={14} color="var(--noshd-muted)" />
+              </button>
             </div>
-          )}
-          <div style={{ fontSize: "11px", color: "var(--noshd-faint)", fontFamily: "var(--font-body)", textAlign: "center", marginTop: "12px" }}>click a pin to see restaurants</div>
+            <div style={{ padding: "0 16px 16px" }}>
+              <RestaurantCard
+                country={selectedEntry.country}
+                restaurant={selectedEntry.restaurant}
+                user={user}
+                saved={saved}
+                onSave={onSave}
+                onRemove={onRemove}
+                hideMapButton
+              />
+            </div>
+          </div>
         </div>
       )}
     </div>

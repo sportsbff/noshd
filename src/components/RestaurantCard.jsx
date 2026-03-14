@@ -1,10 +1,12 @@
 "use client";
-import { MapPin, Star } from "lucide-react";
+import { useState } from "react";
+import { MapPin, Star, Map } from "lucide-react";
 import { RESTAURANT_LINKS } from "@/data/countries";
 import { restKey } from "@/lib/utils";
 import SavePanel from "./SavePanel";
 
-export default function RestaurantCard({ country, restaurant, user, saved, onSave, onRemove, compact }) {
+export default function RestaurantCard({ country, restaurant, user, saved, onSave, onRemove, compact, hideMapButton }) {
+  const [showMap, setShowMap] = useState(false);
   const key = restKey(country, restaurant.name);
   const links = RESTAURANT_LINKS[restaurant.name] || {};
   // Simulated Google rating
@@ -22,9 +24,10 @@ export default function RestaurantCard({ country, restaurant, user, saved, onSav
 
       {/* Location + rating */}
       <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "10px", flexWrap: "wrap" }}>
-        <span style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", color: "var(--noshd-muted)", fontFamily: "var(--font-body)" }}>
-          <MapPin size={11} color="var(--noshd-faint)" />{restaurant.neighborhood}
-        </span>
+        <a href={`https://www.google.com/maps/search/${encodeURIComponent(restaurant.name + " " + restaurant.neighborhood + " Chicago")}`} target="_blank" rel="noopener noreferrer"
+          style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", color: "var(--noshd-muted)", fontFamily: "var(--font-body)", textDecoration: "none", borderBottom: "1px dashed var(--noshd-border)", paddingBottom: "1px" }}>
+          <MapPin size={11} color="var(--noshd-tangerine)" />{restaurant.neighborhood}
+        </a>
         <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
           {[1, 2, 3, 4, 5].map(s => (
             <Star key={s} size={12}
@@ -69,6 +72,37 @@ export default function RestaurantCard({ country, restaurant, user, saved, onSav
             </a>
           )}
         </div>
+      )}
+      {/* Google Maps embed toggle */}
+      {!hideMapButton && (
+        <>
+          <div style={{ display: "flex", gap: "8px", marginTop: "10px", flexWrap: "wrap", alignItems: "center" }}>
+            <button onClick={() => setShowMap(!showMap)}
+              style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "12px", fontWeight: 600, padding: "5px 12px", border: `1.5px solid ${showMap ? "var(--noshd-electra)" : "var(--noshd-border)"}`, borderRadius: "4px", background: showMap ? "rgba(16,16,255,0.06)" : "#fff", color: showMap ? "var(--noshd-electra)" : "var(--noshd-muted)", fontFamily: "var(--font-body)", textTransform: "lowercase", cursor: "pointer" }}>
+              <Map size={12} /> {showMap ? "hide map" : "view on map"}
+            </button>
+          </div>
+          {showMap && (
+            <div style={{ marginTop: "10px", borderRadius: "4px", overflow: "hidden", border: "1px solid var(--noshd-border)" }}>
+              <iframe
+                width="100%"
+                height="300"
+                style={{ border: 0, display: "block" }}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                src={`https://maps.google.com/maps?q=${encodeURIComponent(restaurant.name + " " + restaurant.neighborhood + " Chicago")}&output=embed&z=15`}
+                allowFullScreen
+              />
+              <div style={{ padding: "8px 12px", background: "var(--noshd-cream)", fontSize: "11px", color: "var(--noshd-faint)", fontFamily: "var(--font-body)" }}>
+                <a href={`https://www.google.com/maps/search/${encodeURIComponent(restaurant.name + " " + restaurant.neighborhood + " Chicago")}`}
+                  target="_blank" rel="noopener noreferrer"
+                  style={{ color: "var(--noshd-electra)", textDecoration: "none", fontWeight: 600 }}>
+                  open in google maps →
+                </a>
+              </div>
+            </div>
+          )}
+        </>
       )}
       <SavePanel user={user} savedEntry={saved?.[key]} onSave={d => onSave?.(key, d)} onRemove={() => onRemove?.(key)} />
     </div>

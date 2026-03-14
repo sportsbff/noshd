@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { ChevronUp, ChevronDown, List, MapPin } from "lucide-react";
-import { ALL_COUNTRIES, COUNTRY_DATA, REGIONS, HOOD_COORDS } from "@/data/countries";
+import { ChevronUp, ChevronDown, List, MapPin, X } from "lucide-react";
+import { ALL_COUNTRIES, COUNTRY_DATA, REGIONS, HOOD_COORDS, COORDS } from "@/data/countries";
 
 const REGION_COLORS = ["#FF5500", "#1010FF", "#FFB000", "#A4DDFF", "#1010FF", "#FF5500"];
 
@@ -54,86 +54,125 @@ function BrowseByRegion({ goCountry, savedCountrySet, favCountrySet }) {
   );
 }
 
+function loadLeaflet() {
+  return new Promise((resolve) => {
+    if (window.L) { resolve(window.L); return; }
+    const cssId = "leaflet-css";
+    if (!document.getElementById(cssId)) {
+      const link = document.createElement("link");
+      link.id = cssId;
+      link.rel = "stylesheet";
+      link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+      document.head.appendChild(link);
+    }
+    const script = document.createElement("script");
+    script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+    script.onload = () => resolve(window.L);
+    document.body.appendChild(script);
+  });
+}
+
+function loadMarkerCluster() {
+  return new Promise((resolve) => {
+    if (window.L?.MarkerClusterGroup) { resolve(); return; }
+    const css1 = document.createElement("link");
+    css1.rel = "stylesheet";
+    css1.href = "https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css";
+    document.head.appendChild(css1);
+    const css2 = document.createElement("link");
+    css2.rel = "stylesheet";
+    css2.href = "https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css";
+    document.head.appendChild(css2);
+    const script = document.createElement("script");
+    script.src = "https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js";
+    script.onload = () => resolve();
+    document.head.appendChild(script);
+  });
+}
+
 function BrowseChicagoMap({ goCountry }) {
-  const [selectedHood, setSelectedHood] = useState(null);
+  const [selectedRestaurant, setSelectedRestaurant] = useState(null);
+  const [showFilter, setShowFilter] = useState(false);
+  const [countryFilter, setCountryFilter] = useState([]);
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
-  const markersRef = useRef([]);
 
-  const byHood = {};
+  // Build flat list of all restaurants with coords
+  const allRestaurants = [];
   ALL_COUNTRIES.forEach(c => {
     const data = COUNTRY_DATA[c]; if (!data) return;
     data.restaurants.forEach(r => {
-      if (!byHood[r.neighborhood]) byHood[r.neighborhood] = [];
-      byHood[r.neighborhood].push({ ...r, country: c, flag: data.flag });
+      const coords = COORDS?.[r.neighborhood] || HOOD_COORDS[r.neighborhood];
+      if (coords) {
+        allRestaurants.push({ ...r, country: c, flag: data.flag, coords });
+      }
     });
   });
 
-  const pinColor = (count) => count >= 4 ? "#FF5500" : count >= 2 ? "#1010FF" : "#57534E";
+  // Get unique countries that have restaurants with coords
+  const availableCountries = [...new Set(allRestaurants.map(r => r.country))].sort();
+
+  // Filter restaurants
+  const filteredRestaurants = countryFilter.length > 0
+    ? allRestaurants.filter(r => countryFilter.includes(r.country))
+    : allRestaurants;
 
   useEffect(() => {
     let cancelled = false;
 
-    function initMap() {
+    loadLeaflet().then(async (L) => {
+      await loadMarkerCluster();
       if (cancelled || !mapRef.current) return;
-      if (mapInstanceRef.current) return;
+      if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; }
 
-      const map = window.L.map(mapRef.current, {
+      const map = L.map(mapRef.current, {
         center: [41.88, -87.65],
         zoom: 11,
         scrollWheelZoom: true,
       });
+      mapInstanceRef.current = map;
 
-      window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        maxZoom: 18,
+        maxZoom: 19,
       }).addTo(map);
 
-      Object.entries(byHood).forEach(([hood, items]) => {
-        const coords = HOOD_COORDS[hood];
-        if (!coords) return;
-        const cuisineCount = new Set(items.map(i => i.country)).size;
-        const color = pinColor(cuisineCount);
-        const size = 28;
-
-        const icon = window.L.divIcon({
-          className: "",
-          html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2px solid #fff;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;font-family:var(--font-body);box-shadow:0 2px 6px rgba(0,0,0,0.25);cursor:pointer;">${items.length}</div>`,
-          iconSize: [size, size],
-          iconAnchor: [size / 2, size / 2],
-        });
-
-        const marker = window.L.marker([coords[0], coords[1]], { icon })
-          .addTo(map)
-          .bindTooltip(hood, {
-            direction: "top",
-            offset: [0, -16],
-            className: "leaflet-hood-tooltip",
+      const clusterGroup = L.markerClusterGroup({
+        maxClusterRadius: 45,
+        spiderfyOnMaxZoom: true,
+        showCoverageOnHover: false,
+        iconCreateFunction: (cluster) => {
+          const count = cluster.getChildCount();
+          const size = count > 20 ? 40 : count > 5 ? 34 : 28;
+          return L.divIcon({
+            html: `<div style="background:#FF5500;color:white;border-radius:50%;width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;font-size:${count > 20 ? 14 : 12}px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:2px solid white;">${count}</div>`,
+            className: "",
+            iconSize: [size, size],
+            iconAnchor: [size / 2, size / 2],
           });
-
-        marker.on("click", () => {
-          setSelectedHood(prev => prev === hood ? null : hood);
-        });
-
-        markersRef.current.push(marker);
+        },
       });
 
-      mapInstanceRef.current = map;
-    }
+      filteredRestaurants.forEach((r) => {
+        const jLat = (Math.random() - 0.5) * 0.003;
+        const jLng = (Math.random() - 0.5) * 0.003;
 
-    if (window.L) {
-      initMap();
-    } else {
-      const link = document.createElement("link");
-      link.rel = "stylesheet";
-      link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-      document.head.appendChild(link);
+        const icon = L.divIcon({
+          html: `<span style="font-size:22px;line-height:1;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.3));cursor:pointer;">📍</span>`,
+          className: "",
+          iconSize: [24, 24],
+          iconAnchor: [12, 22],
+        });
 
-      const script = document.createElement("script");
-      script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-      script.onload = () => initMap();
-      document.head.appendChild(script);
-    }
+        const marker = L.marker([r.coords[0] + jLat, r.coords[1] + jLng], { icon });
+        marker.bindTooltip(`${r.flag} ${r.name}`, { direction: "top", offset: [0, -12] });
+        marker.on("click", () => setSelectedRestaurant(r));
+        clusterGroup.addLayer(marker);
+      });
+
+      map.addLayer(clusterGroup);
+      setTimeout(() => map.invalidateSize(), 100);
+    });
 
     return () => {
       cancelled = true;
@@ -141,39 +180,123 @@ function BrowseChicagoMap({ goCountry }) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
-      markersRef.current = [];
     };
-  }, []);
+  }, [countryFilter]);
 
   return (
     <div style={{ background: "#fff", borderRadius: "4px", border: "1px solid var(--noshd-border)", padding: "20px" }}>
-      <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--noshd-muted)", textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: "12px", fontFamily: "var(--font-body)" }}>
-        📍 all restaurants across chicago — click a neighborhood
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px", flexWrap: "wrap", gap: "8px" }}>
+        <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--noshd-muted)", textTransform: "uppercase", letterSpacing: "1.5px", fontFamily: "var(--font-body)" }}>
+          📍 {filteredRestaurants.length} restaurants{countryFilter.length > 0 ? ` · ${countryFilter.length} ${countryFilter.length === 1 ? "country" : "countries"}` : ""} — zoom in to explore
+        </div>
+        <button onClick={() => setShowFilter(!showFilter)}
+          style={{ display: "flex", alignItems: "center", gap: "5px", padding: "5px 12px", border: `1.5px solid ${showFilter ? "var(--noshd-electra)" : "var(--noshd-border)"}`, borderRadius: "4px", background: showFilter ? "rgba(16,16,255,0.06)" : "transparent", color: showFilter ? "var(--noshd-electra)" : "var(--noshd-muted)", fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-body)", textTransform: "lowercase" }}>
+          <MapPin size={12} /> filter by country
+        </button>
       </div>
+      {showFilter && (
+        <div style={{ marginBottom: "12px", padding: "12px", background: "var(--noshd-cream)", borderRadius: "4px", border: "1px solid var(--noshd-border)", animation: "fadeUp 0.2s ease", maxHeight: "280px", overflowY: "auto" }}>
+          {/* Global controls */}
+          <div style={{ display: "flex", gap: "6px", marginBottom: "10px" }}>
+            <button onClick={() => setCountryFilter([])}
+              style={{ padding: "4px 12px", border: `1.5px solid ${countryFilter.length === 0 ? "var(--noshd-accent)" : "var(--noshd-border)"}`, borderRadius: "50px", background: countryFilter.length === 0 ? "var(--noshd-accent-bg)" : "#fff", color: countryFilter.length === 0 ? "var(--noshd-accent)" : "var(--noshd-muted)", fontSize: "11px", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-body)", textTransform: "lowercase" }}>
+              show all
+            </button>
+            <button onClick={() => setCountryFilter([...availableCountries])}
+              style={{ padding: "4px 12px", border: `1.5px solid ${countryFilter.length === availableCountries.length ? "var(--noshd-accent)" : "var(--noshd-border)"}`, borderRadius: "50px", background: countryFilter.length === availableCountries.length ? "var(--noshd-accent-bg)" : "#fff", color: countryFilter.length === availableCountries.length ? "var(--noshd-accent)" : "var(--noshd-muted)", fontSize: "11px", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-body)", textTransform: "lowercase" }}>
+              select all
+            </button>
+            {countryFilter.length > 0 && (
+              <button onClick={() => setCountryFilter([])}
+                style={{ padding: "4px 12px", border: "1.5px solid var(--noshd-border)", borderRadius: "50px", background: "#fff", color: "var(--noshd-muted)", fontSize: "11px", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-body)", textTransform: "lowercase" }}>
+                clear ({countryFilter.length})
+              </button>
+            )}
+          </div>
+          {/* Continent sections */}
+          {Object.entries(REGIONS).map(([region, countries]) => {
+            const regionCountries = countries.filter(c => availableCountries.includes(c));
+            if (regionCountries.length === 0) return null;
+            const emoji = region.split("  ")[0];
+            const name = region.split("  ")[1];
+            const allRegionSelected = regionCountries.every(c => countryFilter.includes(c));
+            const someSelected = regionCountries.some(c => countryFilter.includes(c));
+            const toggleRegion = () => {
+              if (allRegionSelected) {
+                setCountryFilter(prev => prev.filter(c => !regionCountries.includes(c)));
+              } else {
+                setCountryFilter(prev => [...new Set([...prev, ...regionCountries])]);
+              }
+            };
+            return (
+              <div key={region} style={{ marginBottom: "8px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
+                  <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--noshd-charcoal)", fontFamily: "var(--font-body)" }}>{emoji} {name}</span>
+                  <button onClick={toggleRegion}
+                    style={{ padding: "2px 8px", border: `1.5px solid ${allRegionSelected ? "var(--noshd-accent)" : someSelected ? "var(--noshd-accent)" : "var(--noshd-border)"}`, borderRadius: "50px", background: allRegionSelected ? "var(--noshd-accent-bg)" : "transparent", color: allRegionSelected ? "var(--noshd-accent)" : "var(--noshd-faint)", fontSize: "10px", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-body)", textTransform: "lowercase" }}>
+                    {allRegionSelected ? "deselect" : "select all"}
+                  </button>
+                </div>
+                <div style={{ display: "flex", gap: "3px", flexWrap: "wrap" }}>
+                  {regionCountries.map(c => {
+                    const active = countryFilter.includes(c);
+                    return (
+                      <button key={c} onClick={() => setCountryFilter(prev => active ? prev.filter(x => x !== c) : [...prev, c])}
+                        style={{ padding: "3px 9px", border: `1.5px solid ${active ? "var(--noshd-accent)" : "var(--noshd-border)"}`, borderRadius: "50px", background: active ? "var(--noshd-accent-bg)" : "#fff", color: active ? "var(--noshd-accent)" : "var(--noshd-muted)", fontSize: "11px", fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-body)" }}>
+                        {COUNTRY_DATA[c]?.flag} {c}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
       <div
         ref={mapRef}
-        style={{ width: "100%", height: "420px", borderRadius: "4px", border: "1px solid var(--noshd-border)" }}
+        style={{ width: "100%", height: "420px", borderRadius: "4px", border: "1px solid var(--noshd-border)", position: "relative", zIndex: 1 }}
       />
-      {selectedHood && byHood[selectedHood] && (
-        <div style={{ marginTop: "16px", animation: "fadeUp 0.2s ease" }}>
-          <div style={{ fontSize: "15px", fontWeight: 400, color: "var(--noshd-charcoal)", fontFamily: "var(--font-display)", marginBottom: "4px" }}>{selectedHood}</div>
-          <div style={{ fontSize: "12px", color: "var(--noshd-muted)", fontFamily: "var(--font-body)", marginBottom: "12px" }}>
-            {byHood[selectedHood].length} restaurant{byHood[selectedHood].length > 1 ? "s" : ""} &middot; {new Set(byHood[selectedHood].map(i => i.country)).size} cuisine{new Set(byHood[selectedHood].map(i => i.country)).size > 1 ? "s" : ""}
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            {byHood[selectedHood].map((r, i) => (
-              <button key={i} onClick={() => goCountry(r.country)} style={{ display: "flex", gap: "10px", alignItems: "center", padding: "10px 12px", background: "var(--noshd-cream)", border: "1px solid var(--noshd-border)", borderRadius: "4px", fontSize: "13px", cursor: "pointer", textAlign: "left", width: "100%" }}>
-                <span style={{ fontSize: "18px" }}>{r.flag}</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: "var(--font-display)", color: "var(--noshd-charcoal)" }}>{r.name}</div>
-                  <div style={{ fontSize: "11px", color: "var(--noshd-muted)", fontFamily: "var(--font-body)" }}>{r.country} &middot; {r.price}</div>
+      <div style={{ fontSize: "11px", color: "var(--noshd-faint)", fontFamily: "var(--font-body)", textAlign: "center", marginTop: "12px" }}>
+        {allRestaurants.length} restaurants &middot; zoom in to unfurl clusters &middot; tap a pin for details
+      </div>
+
+      {/* Popup overlay for selected restaurant */}
+      {selectedRestaurant && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 250, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", animation: "fadeUp 0.2s ease" }}
+          onClick={(e) => { if (e.target === e.currentTarget) setSelectedRestaurant(null); }}>
+          <div style={{ background: "#fff", borderRadius: "8px", boxShadow: "0 8px 32px rgba(0,0,0,0.2)", border: "1px solid var(--noshd-border)", width: "min(400px, 92vw)", margin: "20px", overflow: "hidden" }}>
+            <div style={{ padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+                  <span style={{ fontSize: "24px" }}>{selectedRestaurant.flag}</span>
+                  <div>
+                    <div style={{ fontFamily: "var(--font-display)", fontSize: "18px", color: "var(--noshd-charcoal)" }}>{selectedRestaurant.name}</div>
+                    <div style={{ fontSize: "12px", color: "var(--noshd-muted)", fontFamily: "var(--font-body)" }}>
+                      {selectedRestaurant.country} &middot; {selectedRestaurant.neighborhood} &middot; {selectedRestaurant.price}
+                    </div>
+                  </div>
                 </div>
+                <p style={{ fontSize: "13px", color: "var(--noshd-muted)", lineHeight: 1.6, fontFamily: "var(--font-body)", margin: "8px 0" }}>{selectedRestaurant.description}</p>
+                {selectedRestaurant.mustTry && (
+                  <div style={{ borderLeft: "3px solid #FF5500", paddingLeft: "10px", marginBottom: "8px" }}>
+                    <div style={{ fontSize: "10px", color: "var(--noshd-faint)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "1px", fontFamily: "var(--font-body)" }}>recommended</div>
+                    <div style={{ fontSize: "13px", color: "var(--noshd-charcoal)", fontFamily: "var(--font-body)", fontWeight: 600 }}>{selectedRestaurant.mustTry}</div>
+                  </div>
+                )}
+                <button onClick={() => { setSelectedRestaurant(null); goCountry(selectedRestaurant.country); }}
+                  style={{ padding: "8px 18px", background: "var(--noshd-tangerine)", color: "white", border: "2px solid var(--noshd-tangerine)", borderRadius: "4px", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "var(--font-body)", textTransform: "lowercase" }}>
+                  see all {selectedRestaurant.country} restaurants →
+                </button>
+              </div>
+              <button onClick={() => setSelectedRestaurant(null)}
+                style={{ background: "var(--noshd-cream)", border: "none", borderRadius: "50%", width: "28px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, marginLeft: "12px" }}>
+                <X size={14} color="var(--noshd-muted)" />
               </button>
-            ))}
+            </div>
           </div>
         </div>
       )}
-      <div style={{ fontSize: "11px", color: "var(--noshd-faint)", fontFamily: "var(--font-body)", textAlign: "center", marginTop: "12px" }}>pin color = cuisine count · click to explore</div>
     </div>
   );
 }

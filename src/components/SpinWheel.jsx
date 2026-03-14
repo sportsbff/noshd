@@ -64,11 +64,20 @@ export default function SpinWheel({ countries, onResult }) {
       const textColor = WHEEL_COLORS_MAP[i % WHEEL_COLORS_MAP.length][1];
       const isLight = segColor === "#FFB000" || segColor === "#A4DDFF" || segColor === "#F4F7FC";
 
-      // Measure text for pill
-      const fontSize = n > 16 ? 11 : n > 12 ? 12 : 13;
-      ctx.font = `400 ${fontSize}px 'Young Serif',Georgia,serif`;
+      // Measure text for pill — responsive font size based on segment and wheel size
+      const maxFontSize = n > 16 ? 10 : n > 12 ? 11 : 12;
       const label = `${COUNTRY_DATA[country]?.flag || ""} ${country}`;
-      const textW = ctx.measureText(label).width;
+
+      // Max text width scales with wheel radius — never exceed segment length
+      const maxTextW = Math.min(r * 0.48, seg * r * 0.55);
+      let fontSize = maxFontSize;
+      ctx.font = `400 ${fontSize}px 'Young Serif',Georgia,serif`;
+      let textW = ctx.measureText(label).width;
+      while (textW > maxTextW && fontSize > 6) {
+        fontSize -= 0.5;
+        ctx.font = `400 ${fontSize}px 'Young Serif',Georgia,serif`;
+        textW = ctx.measureText(label).width;
+      }
 
       // Draw pill background
       const pillPad = 6, pillH = fontSize + 8, pillW = textW + pillPad * 2 + 4;
@@ -81,7 +90,6 @@ export default function SpinWheel({ countries, onResult }) {
       // Draw text
       ctx.shadowColor = "transparent"; ctx.shadowBlur = 0;
       ctx.fillStyle = textColor;
-      ctx.font = `400 ${fontSize}px 'Young Serif',Georgia,serif`;
       ctx.fillText(label, 0, 1);
       ctx.restore();
     });
@@ -107,8 +115,8 @@ export default function SpinWheel({ countries, onResult }) {
     const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
     // Responsive: cap at 400px but shrink to fit container
     const container = canvas.parentElement;
-    const maxW = container ? Math.min(560, container.clientWidth - 16) : 560;
-    const size = Math.max(300, maxW);
+    const maxW = container ? Math.min(620, container.clientWidth - 16) : 620;
+    const size = Math.max(320, maxW);
     canvas.width = size * dpr;
     canvas.height = size * dpr;
     canvas.style.width = `${size}px`;

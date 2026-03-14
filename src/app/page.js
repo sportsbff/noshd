@@ -1,8 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Shuffle, SlidersHorizontal } from "lucide-react";
 import { ALL_COUNTRIES, COUNTRY_DATA } from "@/data/countries";
 import { shuffle } from "@/lib/utils";
+import { supabase, getSession, getProfile, loadSaved, saveToDB, removeFromDB, signOut as supaSignOut } from "@/lib/supabase";
 
 import Nav from "@/components/Nav";
 import Hero from "@/components/Hero";
@@ -13,6 +14,7 @@ import CountryCustomizer from "@/components/CountryCustomizer";
 import CountryBrowser from "@/components/CountryBrowser";
 import CountryPage from "@/components/CountryPage";
 import MyRestaurants from "@/components/MyRestaurants";
+import AccountPage from "@/components/AccountPage";
 import AdBanner from "@/components/AdBanner";
 
 export default function Home() {
@@ -24,16 +26,60 @@ export default function Home() {
   const [showCustomizer, setShowCustomizer] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [saved, setSaved] = useState({});
   const [wheelFilter, setWheelFilter] = useState("all");
   const [browseView, setBrowseView] = useState("grid");
 
-  const handleAuth = (u) => { setUser(u); setShowAuth(false); };
-  const handleSave = (key, data) => setSaved(prev => ({ ...prev, [key]: data }));
-  const handleRemove = (key) => setSaved(prev => { const n = { ...prev }; delete n[key]; return n; });
+  // Restore session from Supabase on mount
+  useEffect(() => {
+    let cancelled = false;
+    getSession().then(async ({ data }) => {
+      if (cancelled || !data?.session?.user) return;
+      const u = data.session.user;
+      const p = await getProfile(u.id);
+      const name = p?.name || u.user_metadata?.name || u.email?.split("@")[0] || "User";
+      const tier = p?.tier || u.user_metadata?.tier || "free";
+      setUser({ name, tier, email: u.email, id: u.id });
+      setProfile(p || { id: u.id, name, tier, email: u.email });
+      const savedData = await loadSaved(u.id);
+      if (!cancelled) setSaved(savedData);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleAuth = useCallback((u) => {
+    setUser(u);
+    setProfile(u.id ? { id: u.id, name: u.name, tier: u.tier, email: u.email } : null);
+    setShowAuth(false);
+    // Load saved data if Supabase user
+    if (u.id) {
+      loadSaved(u.id).then(data => setSaved(data));
+    }
+  }, []);
+
+  const handleSave = useCallback((key, data) => {
+    setSaved(prev => ({ ...prev, [key]: data }));
+    if (user?.id) saveToDB(user.id, key, data);
+  }, [user]);
+
+  const handleRemove = useCallback((key) => {
+    setSaved(prev => { const n = { ...prev }; delete n[key]; return n; });
+    if (user?.id) removeFromDB(user.id, key);
+  }, [user]);
+
   const goCountry = (c) => { setCountry(c); setView("country"); window.scrollTo(0, 0); };
   const goHome = () => { setView("home"); setCountry(null); };
   const savedCount = Object.keys(saved).length;
+
+  const handleSignOut = async () => {
+    await supaSignOut();
+    setUser(null);
+    setProfile(null);
+    setSaved({});
+    setView("home");
+    setTab("spin");
+  };
 
   const savedCountrySet = new Set(Object.keys(saved).map(k => k.split("||")[0]));
   const favCountrySet = new Set(
@@ -60,20 +106,23 @@ export default function Home() {
     return (
       <button key={id} onClick={() => setTab(id)}
         style={{
-          padding: "10px 20px 12px",
+          padding: "12px 14px 13px",
           border: active ? "1px solid var(--noshd-border)" : "1px solid transparent",
-          borderBottom: active ? "1px solid #fff" : "1px solid transparent",
+          borderBottom: active ? "none" : "1px solid transparent",
           borderRadius: "6px 6px 0 0",
           background: active ? "#fff" : "transparent",
           cursor: "pointer",
           fontSize: "13px",
+          lineHeight: "1.1",
           fontWeight: active ? 600 : 400,
           fontFamily: "var(--font-body)",
-          color: active ? "var(--noshd-electra)" : "rgba(28,25,23,0.4)",
+          color: active ? "var(--noshd-electra)" : "rgba(28,25,23,0.55)",
           marginBottom: "-1px",
           textTransform: "lowercase",
           transition: "all 0.15s",
           position: "relative",
+          whiteSpace: "nowrap",
+          zIndex: active ? 2 : 1,
         }}>
         {label}
       </button>
@@ -87,7 +136,24 @@ export default function Home() {
 
       <Nav user={user} savedCount={savedCount} onShowAuth={() => setShowAuth(true)} onGoHome={goHome}
         onMyRestaurants={() => { setTab("my"); setView("home"); }}
-        onSignOut={() => { setUser(null); setSaved({}); }} />
+        onAccount={() => setView("account")}
+        onSignOut={handleSignOut} />
+
+      {/* Account Page */}
+      {view === "account" && user && (
+        <main style={{ padding: "28px 20px 0" }}>
+          <AccountPage
+            user={user}
+            profile={profile}
+            onBack={goHome}
+            onProfileUpdate={(updates) => {
+              setUser(prev => ({ ...prev, ...updates }));
+              setProfile(prev => prev ? { ...prev, ...updates } : prev);
+            }}
+            onSignOut={handleSignOut}
+          />
+        </main>
+      )}
 
       {/* Country Page */}
       {view === "country" && country && (
@@ -103,8 +169,15 @@ export default function Home() {
           <Hero />
 
           {/* Tab nav — banana strip below hero */}
-          <div style={{ background: "var(--noshd-banana)", position: "relative" }}>
-            <div className="tab-nav" style={{ padding: "0 24px", display: "flex", gap: "4px", borderBottom: "1px solid var(--noshd-border)", overflow: "auto", WebkitOverflowScrolling: "touch", paddingTop: "8px" }}>
+          <div style={{ background: "var(--noshd-banana)", position: "relative", paddingTop: "20px" }}>
+            <div className="tab-nav" style={{
+              padding: "0 24px",
+              display: "flex",
+              gap: "4px",
+              borderBottom: "none",
+              overflow: "auto",
+              WebkitOverflowScrolling: "touch",
+            }}>
               {navTab("spin", "spin the wheel")}
               {navTab("browse", "browse by country")}
               {user && navTab("my", `my restaurants${savedCount > 0 ? ` (${savedCount})` : ""}`)}
@@ -114,8 +187,8 @@ export default function Home() {
           {/* Tab content */}
           {tab === "spin" && (
             <>
-              {/* Wheel panel — cream bg */}
-              <div id="wheel-section" style={{ background: "var(--noshd-cream)" }}>
+              {/* Wheel panel */}
+              <div id="wheel-section" style={{ background: "#fff", borderTop: "none" }}>
                 <div style={{ padding: "36px 24px 48px" }}>
                   <div style={{ maxWidth: "720px", margin: "0 auto" }}>
                     {/* Controls */}
@@ -194,21 +267,27 @@ export default function Home() {
           )}
 
           {tab === "browse" && (
-            <div style={{ padding: "28px 24px", maxWidth: "860px", margin: "0 auto", animation: "fadeUp 0.3s ease" }}>
-              <CountryBrowser savedCountrySet={savedCountrySet} favCountrySet={favCountrySet} onSelectCountry={goCountry}
-                browseView={browseView} setBrowseView={setBrowseView} />
+            <div style={{ background: "#fff", padding: "28px 24px", animation: "fadeUp 0.3s ease" }}>
+              <div style={{ maxWidth: "860px", margin: "0 auto" }}>
+                <CountryBrowser savedCountrySet={savedCountrySet} favCountrySet={favCountrySet} onSelectCountry={goCountry}
+                  browseView={browseView} setBrowseView={setBrowseView} />
+              </div>
             </div>
           )}
 
           {tab === "my" && user && (
-            <div style={{ padding: "28px 20px 0", animation: "fadeUp 0.3s ease" }}>
+            <div style={{ background: "#fff", padding: "28px 20px 0", animation: "fadeUp 0.3s ease" }}>
               <MyRestaurants user={user} saved={saved} onSave={handleSave} onRemove={handleRemove} onBack={goHome} />
               <AdBanner size="rectangle" user={user} />
             </div>
           )}
 
           {/* Footer */}
-          <Footer />
+          <Footer
+            onSpin={() => { setTab("spin"); window.scrollTo({ top: document.getElementById("wheel-section")?.offsetTop || 0, behavior: "smooth" }); }}
+            onBrowse={() => setTab("browse")}
+            onShowAuth={() => setShowAuth(true)}
+          />
         </main>
       )}
 
