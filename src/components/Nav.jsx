@@ -1,10 +1,11 @@
 "use client";
 import { useState } from "react";
-import { User, ChevronDown, Bookmark, LogOut, Menu, X } from "lucide-react";
+import { User, ChevronDown, Bookmark, LogOut, Menu, X, MapPin } from "lucide-react";
 
 export default function Nav({ user, savedCount, onShowAuth, onGoHome, onMyRestaurants, onSignOut, showHome }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [cityOpen, setCityOpen] = useState(false);
 
   return (
     <>
@@ -15,7 +16,27 @@ export default function Nav({ user, savedCount, onShowAuth, onGoHome, onMyRestau
             {/* Logo */}
             <button onClick={onGoHome} style={{ background: "none", border: "none", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
               <div style={{ fontFamily: "var(--font-display)", fontWeight: 400, fontSize: "24px", letterSpacing: "-1px", color: "#FFFFFF", lineHeight: 1 }}>noshd</div>
-              <div className="nav-chicago" style={{ fontSize: "10px", color: "rgba(255,255,255,0.5)", letterSpacing: "2px", textTransform: "uppercase", fontFamily: "var(--font-body)", borderLeft: "1px solid rgba(255,255,255,0.2)", paddingLeft: "10px" }}>chicago</div>
+              <div className="nav-chicago" style={{ position: "relative", borderLeft: "1px solid rgba(255,255,255,0.2)", paddingLeft: "10px" }}>
+                <button onClick={(e) => { e.stopPropagation(); setCityOpen(!cityOpen); }}
+                  style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px", fontSize: "10px", color: "rgba(255,255,255,0.5)", letterSpacing: "2px", textTransform: "uppercase", fontFamily: "var(--font-body)", padding: 0 }}>
+                  <MapPin size={10} /> chicago <ChevronDown size={8} />
+                </button>
+                {cityOpen && (
+                  <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, background: "#fff", border: "1px solid var(--noshd-border)", borderRadius: "4px", minWidth: "160px", boxShadow: "0 4px 20px rgba(0,0,0,0.12)", zIndex: 300, overflow: "hidden" }}>
+                    <div style={{ padding: "10px 14px", fontSize: "13px", fontWeight: 600, color: "var(--noshd-tangerine)", fontFamily: "var(--font-body)", textTransform: "lowercase", display: "flex", alignItems: "center", gap: "6px" }}>
+                      <MapPin size={12} /> chicago
+                    </div>
+                    <div style={{ borderTop: "1px solid var(--noshd-border)" }}>
+                      <div style={{ padding: "10px 14px", fontSize: "12px", color: "var(--noshd-faint)", fontFamily: "var(--font-body)", textTransform: "lowercase", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        los angeles <span style={{ fontSize: "9px", background: "var(--noshd-banana)", color: "var(--noshd-charcoal)", padding: "1px 6px", borderRadius: "2px", fontWeight: 700, letterSpacing: "0.5px" }}>soon</span>
+                      </div>
+                      <div style={{ padding: "10px 14px", fontSize: "12px", color: "var(--noshd-faint)", fontFamily: "var(--font-body)", textTransform: "lowercase", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        new york <span style={{ fontSize: "9px", background: "var(--noshd-banana)", color: "var(--noshd-charcoal)", padding: "1px 6px", borderRadius: "2px", fontWeight: 700, letterSpacing: "0.5px" }}>soon</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </button>
 
             {/* Desktop nav */}
@@ -98,6 +119,7 @@ export default function Nav({ user, savedCount, onShowAuth, onGoHome, onMyRestau
       </div>
       {menuOpen && <div style={{ position: "fixed", inset: 0, zIndex: 199 }} onClick={() => setMenuOpen(false)} />}
       {mobileMenuOpen && <div style={{ position: "fixed", inset: 0, zIndex: 199 }} onClick={() => setMobileMenuOpen(false)} />}
+      {cityOpen && <div style={{ position: "fixed", inset: 0, zIndex: 199 }} onClick={() => setCityOpen(false)} />}
     </>
   );
 }

@@ -13,6 +13,7 @@ import CountryCustomizer from "@/components/CountryCustomizer";
 import CountryBrowser from "@/components/CountryBrowser";
 import CountryPage from "@/components/CountryPage";
 import MyRestaurants from "@/components/MyRestaurants";
+import AdBanner from "@/components/AdBanner";
 
 export default function Home() {
   const [view, setView] = useState("home");
@@ -64,8 +65,8 @@ export default function Home() {
         fontSize: "13px",
         fontWeight: tab === id ? 600 : 400,
         fontFamily: "var(--font-body)",
-        color: tab === id ? "#FFFFFF" : "rgba(255,255,255,0.45)",
-        borderBottom: `2px solid ${tab === id ? "#FFF597" : "transparent"}`,
+        color: tab === id ? "var(--noshd-electra)" : "rgba(28,25,23,0.4)",
+        borderBottom: `2px solid ${tab === id ? "var(--noshd-tangerine)" : "transparent"}`,
         marginBottom: "-1px",
         textTransform: "lowercase",
         transition: "color 0.15s",
@@ -76,6 +77,9 @@ export default function Home() {
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--noshd-white)", fontFamily: "var(--font-body)", color: "var(--noshd-charcoal)" }}>
+      {/* Ad — above header */}
+      <AdBanner size="leaderboard" user={user} />
+
       <Nav user={user} savedCount={savedCount} onShowAuth={() => setShowAuth(true)} onGoHome={goHome}
         onMyRestaurants={() => { setTab("my"); setView("home"); }}
         onSignOut={() => { setUser(null); setSaved({}); }}
@@ -94,9 +98,9 @@ export default function Home() {
           {/* Hero — always visible */}
           <Hero />
 
-          {/* Tab nav — charcoal strip below hero */}
-          <div style={{ background: "var(--noshd-charcoal)", position: "relative" }}>
-            <div className="tab-nav" style={{ padding: "0 24px", display: "flex", gap: "24px", borderBottom: "1px solid rgba(255,255,255,0.08)", overflow: "auto", WebkitOverflowScrolling: "touch" }}>
+          {/* Tab nav — banana strip below hero */}
+          <div style={{ background: "var(--noshd-banana)", position: "relative" }}>
+            <div className="tab-nav" style={{ padding: "0 24px", display: "flex", gap: "24px", borderBottom: "1px solid rgba(28,25,23,0.08)", overflow: "auto", WebkitOverflowScrolling: "touch" }}>
               {navTab("spin", "spin the wheel")}
               {navTab("browse", "browse by country")}
               {user && navTab("my", `my restaurants${savedCount > 0 ? ` (${savedCount})` : ""}`)}
@@ -160,6 +164,9 @@ export default function Home() {
                 </div>
               </div>
 
+              {/* Ad — below wheel */}
+              <AdBanner size="leaderboard" user={user} />
+
               {/* Spin result */}
               {spinResult && (
                 <div style={{ background: "#fff", borderBottom: "1px solid var(--noshd-border)", padding: "28px 24px", animation: "fadeUp 0.3s ease" }}>
@@ -173,7 +180,7 @@ export default function Home() {
                     </div>
                     <p style={{ color: "var(--noshd-muted)", fontSize: "14px", lineHeight: 1.7, marginBottom: "16px", fontFamily: "var(--font-body)" }}>{COUNTRY_DATA[spinResult]?.description}</p>
                     <button onClick={() => goCountry(spinResult)}
-                      style={{ background: "var(--noshd-charcoal)", color: "white", border: "2px solid var(--noshd-charcoal)", borderRadius: "4px", padding: "10px 24px", fontWeight: 700, fontSize: "13px", cursor: "pointer", fontFamily: "var(--font-body)", textTransform: "lowercase" }}>
+                      style={{ background: "var(--noshd-tangerine)", color: "white", border: "2px solid var(--noshd-tangerine)", borderRadius: "4px", padding: "10px 24px", fontWeight: 700, fontSize: "13px", cursor: "pointer", fontFamily: "var(--font-body)", textTransform: "lowercase" }}>
                       see restaurants →
                     </button>
                   </div>
@@ -192,6 +199,7 @@ export default function Home() {
           {tab === "my" && user && (
             <div style={{ padding: "28px 20px 0", animation: "fadeUp 0.3s ease" }}>
               <MyRestaurants user={user} saved={saved} onSave={handleSave} onRemove={handleRemove} onBack={goHome} />
+              <AdBanner size="rectangle" user={user} />
             </div>
           )}
 

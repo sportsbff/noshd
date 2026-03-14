@@ -107,8 +107,8 @@ export default function SpinWheel({ countries, onResult }) {
     const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
     // Responsive: cap at 400px but shrink to fit container
     const container = canvas.parentElement;
-    const maxW = container ? Math.min(400, container.clientWidth - 16) : 400;
-    const size = Math.max(260, maxW);
+    const maxW = container ? Math.min(560, container.clientWidth - 16) : 560;
+    const size = Math.max(300, maxW);
     canvas.width = size * dpr;
     canvas.height = size * dpr;
     canvas.style.width = `${size}px`;
@@ -146,9 +146,9 @@ export default function SpinWheel({ countries, onResult }) {
         onClick={spin} />
       <button onClick={spin} disabled={spinning}
         style={{
-          background: spinning ? "var(--noshd-border)" : "var(--noshd-charcoal)",
+          background: spinning ? "var(--noshd-border)" : "var(--noshd-tangerine)",
           color: spinning ? "var(--noshd-muted)" : "#FFFFFF",
-          border: `2px solid ${spinning ? "var(--noshd-border)" : "var(--noshd-charcoal)"}`,
+          border: `2px solid ${spinning ? "var(--noshd-border)" : "var(--noshd-tangerine)"}`,
           borderRadius: "2px",
           padding: "13px 48px",
           fontSize: "15px",

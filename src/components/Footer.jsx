@@ -2,19 +2,19 @@
 
 export default function Footer() {
   return (
-    <div style={{ background: "var(--noshd-charcoal)", position: "relative", overflow: "hidden" }}>
+    <div style={{ background: "var(--noshd-electra)", position: "relative", overflow: "hidden" }}>
       {/* Decorative dots */}
-      <svg style={{ position: "absolute", top: "15%", left: "6%", opacity: 0.08, pointerEvents: "none" }} width="80" height="80" viewBox="0 0 80 80" fill="none">
+      <svg style={{ position: "absolute", top: "15%", left: "6%", opacity: 0.12, pointerEvents: "none" }} width="80" height="80" viewBox="0 0 80 80" fill="none">
         <circle cx="10" cy="10" r="4" fill="#FF5500" />
-        <circle cx="40" cy="20" r="3" fill="#1010FF" />
+        <circle cx="40" cy="20" r="3" fill="#FFF597" />
         <circle cx="15" cy="50" r="5" fill="#FFF597" />
-        <circle cx="60" cy="40" r="3" fill="#1010FF" />
+        <circle cx="60" cy="40" r="3" fill="#A4DDFF" />
       </svg>
-      <svg style={{ position: "absolute", bottom: "12%", right: "8%", opacity: 0.08, pointerEvents: "none" }} width="80" height="80" viewBox="0 0 80 80" fill="none">
+      <svg style={{ position: "absolute", bottom: "12%", right: "8%", opacity: 0.12, pointerEvents: "none" }} width="80" height="80" viewBox="0 0 80 80" fill="none">
         <circle cx="70" cy="15" r="5" fill="#FFF597" />
-        <circle cx="30" cy="30" r="3" fill="#1010FF" />
-        <circle cx="60" cy="55" r="4" fill="#1010FF" />
-        <circle cx="20" cy="65" r="3" fill="#FF5500" />
+        <circle cx="30" cy="30" r="3" fill="#A4DDFF" />
+        <circle cx="60" cy="55" r="4" fill="#FF5500" />
+        <circle cx="20" cy="65" r="3" fill="#FFF597" />
       </svg>
 
       {/* Main tagline */}
