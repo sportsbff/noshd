@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { User, ChevronDown, Bookmark, LogOut, Menu, X, MapPin } from "lucide-react";
 
-export default function Nav({ user, savedCount, onShowAuth, onGoHome, onMyRestaurants, onSignOut, showHome }) {
+export default function Nav({ user, savedCount, onShowAuth, onGoHome, onMyRestaurants, onSignOut }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [cityOpen, setCityOpen] = useState(false);
@@ -41,9 +41,6 @@ export default function Nav({ user, savedCount, onShowAuth, onGoHome, onMyRestau
 
             {/* Desktop nav */}
             <div className="nav-desktop" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              {showHome && (
-                <button onClick={onGoHome} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "13px", color: "rgba(255,255,255,0.7)", fontWeight: 500, fontFamily: "var(--font-body)", textTransform: "lowercase", padding: "6px 10px" }}>home</button>
-              )}
               {user ? (
                 <div style={{ position: "relative" }}>
                   <button onClick={() => setMenuOpen(!menuOpen)} style={{ display: "flex", alignItems: "center", gap: "7px", background: "rgba(255,255,255,0.1)", border: "1.5px solid rgba(255,255,255,0.25)", borderRadius: "4px", padding: "7px 12px", cursor: "pointer", fontSize: "13px", color: "#FFFFFF", fontWeight: 600, fontFamily: "var(--font-body)" }}>
@@ -57,7 +54,7 @@ export default function Nav({ user, savedCount, onShowAuth, onGoHome, onMyRestau
                         <Bookmark size={13} />my restaurants
                         {savedCount > 0 && <span style={{ background: "#FF5500", color: "white", fontSize: "10px", padding: "1px 6px", borderRadius: "10px" }}>{savedCount}</span>}
                       </button>
-                      <button onClick={() => { onGoHome(); setMenuOpen(false); }} style={{ width: "100%", padding: "11px 16px", border: "none", background: "none", cursor: "pointer", textAlign: "left", fontSize: "13px", display: "flex", alignItems: "center", gap: "8px", color: "var(--noshd-muted)", borderTop: "1px solid var(--noshd-border)", fontFamily: "var(--font-body)", textTransform: "lowercase" }}>
+                      <button onClick={() => { onSignOut(); setMenuOpen(false); }} style={{ width: "100%", padding: "11px 16px", border: "none", background: "none", cursor: "pointer", textAlign: "left", fontSize: "13px", display: "flex", alignItems: "center", gap: "8px", color: "var(--noshd-muted)", borderTop: "1px solid var(--noshd-border)", fontFamily: "var(--font-body)", textTransform: "lowercase" }}>
                         <LogOut size={13} />sign out
                       </button>
                     </div>
@@ -82,12 +79,6 @@ export default function Nav({ user, savedCount, onShowAuth, onGoHome, onMyRestau
           {mobileMenuOpen && (
             <div className="nav-mobile-menu" style={{ padding: "0 16px 16px", position: "relative", zIndex: 2 }}>
               <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                {showHome && (
-                  <button onClick={() => { onGoHome(); setMobileMenuOpen(false); }}
-                    style={{ width: "100%", padding: "10px 14px", background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "14px", color: "#FFFFFF", fontWeight: 500, fontFamily: "var(--font-body)", textTransform: "lowercase", textAlign: "left" }}>
-                    home
-                  </button>
-                )}
                 {user ? (
                   <>
                     <button onClick={() => { onMyRestaurants(); setMobileMenuOpen(false); }}

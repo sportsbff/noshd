@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ChevronUp, ChevronDown, List, MapPin } from "lucide-react";
 import { ALL_COUNTRIES, COUNTRY_DATA, REGIONS, HOOD_COORDS } from "@/data/countries";
 
@@ -12,6 +12,7 @@ function BrowseByRegion({ goCountry, savedCountrySet, favCountrySet }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
       {Object.entries(REGIONS).map(([region, countries], ri) => {
+        const sorted = [...countries].sort((a, b) => a.localeCompare(b));
         const color = REGION_COLORS[ri % REGION_COLORS.length];
         const isOpen = openRegions.has(region);
         const emoji = region.split("  ")[0];
@@ -28,7 +29,7 @@ function BrowseByRegion({ goCountry, savedCountrySet, favCountrySet }) {
             {isOpen && (
               <div style={{ padding: "4px 18px 18px", background: "#fff", animation: "fadeUp 0.2s ease" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(140px,1fr))", gap: "10px" }}>
-                  {countries.map(c => {
+                  {sorted.map(c => {
                     const d = COUNTRY_DATA[c]; if (!d) return null;
                     const isSaved = savedCountrySet?.has(c); const isFav = favCountrySet?.has(c);
                     return (
@@ -55,12 +56,10 @@ function BrowseByRegion({ goCountry, savedCountrySet, favCountrySet }) {
 
 function BrowseChicagoMap({ goCountry }) {
   const [selectedHood, setSelectedHood] = useState(null);
-  const minLat = 41.72, maxLat = 42.05, minLng = -87.85, maxLng = -87.55;
-  const project = (lat, lng) => {
-    const x = ((lng - minLng) / (maxLng - minLng)) * 580 + 60;
-    const y = ((maxLat - lat) / (maxLat - minLat)) * 500 + 30;
-    return [x, y];
-  };
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const markersRef = useRef([]);
+
   const byHood = {};
   ALL_COUNTRIES.forEach(c => {
     const data = COUNTRY_DATA[c]; if (!data) return;
@@ -69,32 +68,92 @@ function BrowseChicagoMap({ goCountry }) {
       byHood[r.neighborhood].push({ ...r, country: c, flag: data.flag });
     });
   });
+
   const pinColor = (count) => count >= 4 ? "#FF5500" : count >= 2 ? "#1010FF" : "#57534E";
+
+  useEffect(() => {
+    let cancelled = false;
+
+    function initMap() {
+      if (cancelled || !mapRef.current) return;
+      if (mapInstanceRef.current) return;
+
+      const map = window.L.map(mapRef.current, {
+        center: [41.88, -87.65],
+        zoom: 11,
+        scrollWheelZoom: true,
+      });
+
+      window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        maxZoom: 18,
+      }).addTo(map);
+
+      Object.entries(byHood).forEach(([hood, items]) => {
+        const coords = HOOD_COORDS[hood];
+        if (!coords) return;
+        const cuisineCount = new Set(items.map(i => i.country)).size;
+        const color = pinColor(cuisineCount);
+        const size = 28;
+
+        const icon = window.L.divIcon({
+          className: "",
+          html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2px solid #fff;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;font-family:var(--font-body);box-shadow:0 2px 6px rgba(0,0,0,0.25);cursor:pointer;">${items.length}</div>`,
+          iconSize: [size, size],
+          iconAnchor: [size / 2, size / 2],
+        });
+
+        const marker = window.L.marker([coords[0], coords[1]], { icon })
+          .addTo(map)
+          .bindTooltip(hood, {
+            direction: "top",
+            offset: [0, -16],
+            className: "leaflet-hood-tooltip",
+          });
+
+        marker.on("click", () => {
+          setSelectedHood(prev => prev === hood ? null : hood);
+        });
+
+        markersRef.current.push(marker);
+      });
+
+      mapInstanceRef.current = map;
+    }
+
+    if (window.L) {
+      initMap();
+    } else {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+      document.head.appendChild(link);
+
+      const script = document.createElement("script");
+      script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+      script.onload = () => initMap();
+      document.head.appendChild(script);
+    }
+
+    return () => {
+      cancelled = true;
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+      markersRef.current = [];
+    };
+  }, []);
 
   return (
     <div style={{ background: "#fff", borderRadius: "4px", border: "1px solid var(--noshd-border)", padding: "20px" }}>
-      <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--noshd-muted)", textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: "12px", fontFamily: "var(--font-body)" }}>📍 all restaurants across chicago — click a neighborhood</div>
-      <svg viewBox="0 0 700 560" style={{ width: "100%", height: "auto", display: "block" }}>
-        <rect x="40" y="20" width="620" height="520" rx="8" fill="#F5F5F4" stroke="var(--noshd-border)" strokeWidth="1" />
-        <path d="M580 20 L660 20 L660 340 Q660 380 620 400 Q580 420 560 520 L560 520" fill="#D4E4EE" stroke="#B8CDD9" strokeWidth="1" />
-        {[0,1,2,3,4].map(i => <line key={`h${i}`} x1="40" y1={20 + i * 130} x2="660" y2={20 + i * 130} stroke="rgba(0,0,0,0.04)" strokeWidth="0.5" />)}
-        {[0,1,2,3,4].map(i => <line key={`v${i}`} x1={40 + i * 155} y1="20" x2={40 + i * 155} y2="540" stroke="rgba(0,0,0,0.04)" strokeWidth="0.5" />)}
-        <text x="620" y="360" fill="#B8CDD9" fontSize="11" fontFamily="var(--font-body)" transform="rotate(-90 620 360)">lake michigan</text>
-        {Object.entries(byHood).map(([hood, items]) => {
-          const coords = HOOD_COORDS[hood]; if (!coords) return null;
-          const [x, y] = project(coords[0], coords[1]);
-          const cuisineCount = new Set(items.map(i => i.country)).size;
-          const isSelected = selectedHood === hood;
-          return (
-            <g key={hood} onClick={() => setSelectedHood(isSelected ? null : hood)} style={{ cursor: "pointer" }}>
-              <ellipse cx={x} cy={y + 12} rx="5" ry="2" fill="rgba(0,0,0,0.08)" />
-              <circle cx={x} cy={y} r={isSelected ? 14 : 10} fill={pinColor(cuisineCount)} stroke="#fff" strokeWidth="2" />
-              <text x={x} y={y + 4} textAnchor="middle" fontSize={isSelected ? "13" : "11"} fill="#fff" fontWeight="700" fontFamily="var(--font-body)">{items.length}</text>
-              <text x={x} y={y - 16} textAnchor="middle" fontSize="9" fill="var(--noshd-muted)" fontFamily="var(--font-body)" style={{ textTransform: "lowercase" }}>{hood}</text>
-            </g>
-          );
-        })}
-      </svg>
+      <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--noshd-muted)", textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: "12px", fontFamily: "var(--font-body)" }}>
+        📍 all restaurants across chicago — click a neighborhood
+      </div>
+      <div
+        ref={mapRef}
+        style={{ width: "100%", height: "420px", borderRadius: "4px", border: "1px solid var(--noshd-border)" }}
+      />
       {selectedHood && byHood[selectedHood] && (
         <div style={{ marginTop: "16px", animation: "fadeUp 0.2s ease" }}>
           <div style={{ fontSize: "15px", fontWeight: 400, color: "var(--noshd-charcoal)", fontFamily: "var(--font-display)", marginBottom: "4px" }}>{selectedHood}</div>
@@ -114,7 +173,7 @@ function BrowseChicagoMap({ goCountry }) {
           </div>
         </div>
       )}
-      <div style={{ fontSize: "11px", color: "var(--noshd-faint)", fontFamily: "var(--font-body)", textAlign: "center", marginTop: "12px" }}>pin size = restaurant count · click to explore</div>
+      <div style={{ fontSize: "11px", color: "var(--noshd-faint)", fontFamily: "var(--font-body)", textAlign: "center", marginTop: "12px" }}>pin color = cuisine count · click to explore</div>
     </div>
   );
 }

@@ -55,25 +55,30 @@ export default function Home() {
     setWheelFilter("all");
   };
 
-  const navTab = (id, label) => (
-    <button key={id} onClick={() => setTab(id)}
-      style={{
-        padding: "14px 0",
-        border: "none",
-        background: "none",
-        cursor: "pointer",
-        fontSize: "13px",
-        fontWeight: tab === id ? 600 : 400,
-        fontFamily: "var(--font-body)",
-        color: tab === id ? "var(--noshd-electra)" : "rgba(28,25,23,0.4)",
-        borderBottom: `2px solid ${tab === id ? "var(--noshd-tangerine)" : "transparent"}`,
-        marginBottom: "-1px",
-        textTransform: "lowercase",
-        transition: "color 0.15s",
-      }}>
-      {label}
-    </button>
-  );
+  const navTab = (id, label) => {
+    const active = tab === id;
+    return (
+      <button key={id} onClick={() => setTab(id)}
+        style={{
+          padding: "10px 20px 12px",
+          border: active ? "1px solid var(--noshd-border)" : "1px solid transparent",
+          borderBottom: active ? "1px solid #fff" : "1px solid transparent",
+          borderRadius: "6px 6px 0 0",
+          background: active ? "#fff" : "transparent",
+          cursor: "pointer",
+          fontSize: "13px",
+          fontWeight: active ? 600 : 400,
+          fontFamily: "var(--font-body)",
+          color: active ? "var(--noshd-electra)" : "rgba(28,25,23,0.4)",
+          marginBottom: "-1px",
+          textTransform: "lowercase",
+          transition: "all 0.15s",
+          position: "relative",
+        }}>
+        {label}
+      </button>
+    );
+  };
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--noshd-white)", fontFamily: "var(--font-body)", color: "var(--noshd-charcoal)" }}>
@@ -82,8 +87,7 @@ export default function Home() {
 
       <Nav user={user} savedCount={savedCount} onShowAuth={() => setShowAuth(true)} onGoHome={goHome}
         onMyRestaurants={() => { setTab("my"); setView("home"); }}
-        onSignOut={() => { setUser(null); setSaved({}); }}
-        showHome={view === "country" || tab === "my"} />
+        onSignOut={() => { setUser(null); setSaved({}); }} />
 
       {/* Country Page */}
       {view === "country" && country && (
@@ -100,7 +104,7 @@ export default function Home() {
 
           {/* Tab nav — banana strip below hero */}
           <div style={{ background: "var(--noshd-banana)", position: "relative" }}>
-            <div className="tab-nav" style={{ padding: "0 24px", display: "flex", gap: "24px", borderBottom: "1px solid rgba(28,25,23,0.08)", overflow: "auto", WebkitOverflowScrolling: "touch" }}>
+            <div className="tab-nav" style={{ padding: "0 24px", display: "flex", gap: "4px", borderBottom: "1px solid var(--noshd-border)", overflow: "auto", WebkitOverflowScrolling: "touch", paddingTop: "8px" }}>
               {navTab("spin", "spin the wheel")}
               {navTab("browse", "browse by country")}
               {user && navTab("my", `my restaurants${savedCount > 0 ? ` (${savedCount})` : ""}`)}
