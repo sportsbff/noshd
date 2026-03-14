@@ -14,7 +14,7 @@ export default function Nav({ user, savedCount, onShowAuth, onGoHome, onMyRestau
           <div className="grid-texture" style={{ position: "absolute", inset: 0, pointerEvents: "none" }} />
           <div style={{ padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "relative", zIndex: 2 }}>
             {/* Logo */}
-            <button onClick={onGoHome} style={{ background: "none", border: "none", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
+            <div onClick={onGoHome} style={{ background: "none", border: "none", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
               <div style={{ fontFamily: "var(--font-display)", fontWeight: 400, fontSize: "24px", letterSpacing: "-1px", color: "#FFFFFF", lineHeight: 1 }}>noshd</div>
               <div className="nav-chicago" style={{ position: "relative", borderLeft: "1px solid rgba(255,255,255,0.2)", paddingLeft: "10px" }}>
                 <button onClick={(e) => { e.stopPropagation(); setCityOpen(!cityOpen); }}
@@ -37,7 +37,7 @@ export default function Nav({ user, savedCount, onShowAuth, onGoHome, onMyRestau
                   </div>
                 )}
               </div>
-            </button>
+            </div>
 
             {/* Desktop nav */}
             <div className="nav-desktop" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
