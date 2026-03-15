@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Bookmark, BookmarkPlus, Star, X } from "lucide-react";
 
-export default function SavePanel({ user, savedEntry, onSave, onRemove, inline }) {
+export default function SavePanel({ user, savedEntry, onSave, onRemove }) {
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState(savedEntry?.status || "visited");
   const [rating, setRating] = useState(savedEntry?.rating || 0);
@@ -12,7 +12,7 @@ export default function SavePanel({ user, savedEntry, onSave, onRemove, inline }
   if (!user) return null;
 
   return (
-    <div style={inline ? {} : { marginTop: "12px", borderTop: "1px solid var(--noshd-border-faint)", paddingTop: "10px" }}>
+    <div style={{ marginTop: "10px", paddingTop: "10px" }}>
       {!open ? (
         <button onClick={() => setOpen(true)}
           style={{
