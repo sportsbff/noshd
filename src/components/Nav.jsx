@@ -27,12 +27,11 @@ export default function Nav({ user, savedCount, onShowAuth, onGoHome, onMyRestau
                       <MapPin size={12} /> chicago
                     </div>
                     <div style={{ borderTop: "1px solid var(--noshd-border)" }}>
-                      <div style={{ padding: "10px 14px", fontSize: "12px", color: "var(--noshd-faint)", fontFamily: "var(--font-body)", textTransform: "lowercase", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                        los angeles <span style={{ fontSize: "9px", background: "var(--noshd-banana)", color: "var(--noshd-charcoal)", padding: "1px 6px", borderRadius: "2px", fontWeight: 700, letterSpacing: "0.5px" }}>soon</span>
-                      </div>
-                      <div style={{ padding: "10px 14px", fontSize: "12px", color: "var(--noshd-faint)", fontFamily: "var(--font-body)", textTransform: "lowercase", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                        new york <span style={{ fontSize: "9px", background: "var(--noshd-banana)", color: "var(--noshd-charcoal)", padding: "1px 6px", borderRadius: "2px", fontWeight: 700, letterSpacing: "0.5px" }}>soon</span>
-                      </div>
+                      {["los angeles", "new york", "san francisco", "seattle"].map(city => (
+                        <div key={city} style={{ padding: "10px 14px", fontSize: "12px", color: "var(--noshd-faint)", fontFamily: "var(--font-body)", textTransform: "lowercase", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          {city} <span style={{ fontSize: "9px", background: "var(--noshd-banana)", color: "var(--noshd-charcoal)", padding: "1px 6px", borderRadius: "2px", fontWeight: 700, letterSpacing: "0.5px" }}>soon</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}

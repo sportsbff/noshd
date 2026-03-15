@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Bookmark, BookmarkPlus, Star, X } from "lucide-react";
 
-export default function SavePanel({ user, savedEntry, onSave, onRemove }) {
+export default function SavePanel({ user, savedEntry, onSave, onRemove, inline }) {
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState(savedEntry?.status || "visited");
   const [rating, setRating] = useState(savedEntry?.rating || 0);
@@ -12,7 +12,7 @@ export default function SavePanel({ user, savedEntry, onSave, onRemove }) {
   if (!user) return null;
 
   return (
-    <div style={{ marginTop: "12px", borderTop: "1px solid var(--noshd-border-faint)", paddingTop: "10px" }}>
+    <div style={inline ? {} : { marginTop: "12px", borderTop: "1px solid var(--noshd-border-faint)", paddingTop: "10px" }}>
       {!open ? (
         <button onClick={() => setOpen(true)}
           style={{
@@ -50,7 +50,7 @@ export default function SavePanel({ user, savedEntry, onSave, onRemove }) {
               </button>
             ))}
           </div>
-          <input placeholder="add a note\u2026" value={note} onChange={e => setNote(e.target.value)}
+          <input placeholder="add a note..." value={note} onChange={e => setNote(e.target.value)}
             style={{ width: "100%", padding: "7px 10px", border: "1.5px solid var(--noshd-border)", borderRadius: "4px", fontSize: "13px", marginBottom: "8px", boxSizing: "border-box", fontFamily: "var(--font-body)", color: "var(--noshd-charcoal)" }} />
           <div style={{ display: "flex", gap: "6px" }}>
             {isSaved && (

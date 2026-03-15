@@ -56,49 +56,47 @@ export default function RestaurantCard({ country, restaurant, user, saved, onSav
         </div>
       )}
 
-      {/* Links — always show website + reservations */}
-      <div style={{ display: "flex", gap: "8px", marginTop: "12px", paddingTop: "12px", borderTop: "1px solid var(--noshd-border-faint)", flexWrap: "wrap" }}>
+      {/* Action buttons — all on one row: website, reserve, map (left) + save (right) */}
+      <div style={{ display: "flex", gap: "8px", marginTop: "12px", paddingTop: "12px", borderTop: "1px solid var(--noshd-border-faint)", flexWrap: "wrap", alignItems: "center" }}>
         <a href={links.web || `https://www.google.com/search?q=${encodeURIComponent(restaurant.name + " restaurant Chicago")}`} target="_blank" rel="noopener noreferrer"
           style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "12px", fontWeight: 600, textDecoration: "none", padding: "5px 12px", border: "1.5px solid var(--noshd-border)", borderRadius: "4px", background: "#fff", color: "var(--noshd-muted)", fontFamily: "var(--font-body)", textTransform: "lowercase" }}>
           🌐 website
         </a>
         <a href={links.res || `https://www.google.com/search?q=${encodeURIComponent(restaurant.name + " Chicago reservations")}`} target="_blank" rel="noopener noreferrer"
           style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "12px", fontWeight: 700, textDecoration: "none", padding: "5px 12px", border: "2px solid #FF5500", borderRadius: "4px", background: "#FF5500", color: "white", fontFamily: "var(--font-body)", textTransform: "lowercase" }}>
-          📅 reserve a table
+          📅 reserve
         </a>
+        {!hideMapButton && (
+          <button onClick={() => setShowMap(!showMap)}
+            style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "12px", fontWeight: 600, padding: "5px 12px", border: `1.5px solid ${showMap ? "var(--noshd-electra)" : "var(--noshd-border)"}`, borderRadius: "4px", background: showMap ? "rgba(16,16,255,0.06)" : "#fff", color: showMap ? "var(--noshd-electra)" : "var(--noshd-muted)", fontFamily: "var(--font-body)", textTransform: "lowercase", cursor: "pointer" }}>
+            <Map size={12} /> {showMap ? "hide map" : "view on map"}
+          </button>
+        )}
+        <div style={{ marginLeft: "auto" }}>
+          <SavePanel user={user} savedEntry={saved?.[key]} onSave={d => onSave?.(key, d)} onRemove={() => onRemove?.(key)} inline />
+        </div>
       </div>
-      {/* Google Maps embed toggle */}
-      {!hideMapButton && (
-        <>
-          <div style={{ display: "flex", gap: "8px", marginTop: "10px", flexWrap: "wrap", alignItems: "center" }}>
-            <button onClick={() => setShowMap(!showMap)}
-              style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "12px", fontWeight: 600, padding: "5px 12px", border: `1.5px solid ${showMap ? "var(--noshd-electra)" : "var(--noshd-border)"}`, borderRadius: "4px", background: showMap ? "rgba(16,16,255,0.06)" : "#fff", color: showMap ? "var(--noshd-electra)" : "var(--noshd-muted)", fontFamily: "var(--font-body)", textTransform: "lowercase", cursor: "pointer" }}>
-              <Map size={12} /> {showMap ? "hide map" : "view on map"}
-            </button>
+      {/* Google Maps embed */}
+      {!hideMapButton && showMap && (
+        <div style={{ marginTop: "10px", borderRadius: "4px", overflow: "hidden", border: "1px solid var(--noshd-border)" }}>
+          <iframe
+            width="100%"
+            height="300"
+            style={{ border: 0, display: "block" }}
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+            src={`https://maps.google.com/maps?q=${encodeURIComponent(restaurant.name + " " + restaurant.neighborhood + " Chicago")}&output=embed&z=15`}
+            allowFullScreen
+          />
+          <div style={{ padding: "8px 12px", background: "var(--noshd-cream)", fontSize: "11px", color: "var(--noshd-faint)", fontFamily: "var(--font-body)" }}>
+            <a href={`https://www.google.com/maps/search/${encodeURIComponent(restaurant.name + " " + restaurant.neighborhood + " Chicago")}`}
+              target="_blank" rel="noopener noreferrer"
+              style={{ color: "var(--noshd-electra)", textDecoration: "none", fontWeight: 600 }}>
+              open in google maps →
+            </a>
           </div>
-          {showMap && (
-            <div style={{ marginTop: "10px", borderRadius: "4px", overflow: "hidden", border: "1px solid var(--noshd-border)" }}>
-              <iframe
-                width="100%"
-                height="300"
-                style={{ border: 0, display: "block" }}
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                src={`https://maps.google.com/maps?q=${encodeURIComponent(restaurant.name + " " + restaurant.neighborhood + " Chicago")}&output=embed&z=15`}
-                allowFullScreen
-              />
-              <div style={{ padding: "8px 12px", background: "var(--noshd-cream)", fontSize: "11px", color: "var(--noshd-faint)", fontFamily: "var(--font-body)" }}>
-                <a href={`https://www.google.com/maps/search/${encodeURIComponent(restaurant.name + " " + restaurant.neighborhood + " Chicago")}`}
-                  target="_blank" rel="noopener noreferrer"
-                  style={{ color: "var(--noshd-electra)", textDecoration: "none", fontWeight: 600 }}>
-                  open in google maps →
-                </a>
-              </div>
-            </div>
-          )}
-        </>
+        </div>
       )}
-      <SavePanel user={user} savedEntry={saved?.[key]} onSave={d => onSave?.(key, d)} onRemove={() => onRemove?.(key)} />
     </div>
   );
 }
