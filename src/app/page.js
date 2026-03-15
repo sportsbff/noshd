@@ -141,25 +141,39 @@ export default function Home() {
 
       {/* Account Page */}
       {view === "account" && user && (
-        <main style={{ padding: "28px 20px 0" }}>
-          <AccountPage
-            user={user}
-            profile={profile}
-            onBack={goHome}
-            onProfileUpdate={(updates) => {
-              setUser(prev => ({ ...prev, ...updates }));
-              setProfile(prev => prev ? { ...prev, ...updates } : prev);
-            }}
-            onSignOut={handleSignOut}
+        <>
+          <main style={{ padding: "28px 20px 0" }}>
+            <AccountPage
+              user={user}
+              profile={profile}
+              onBack={goHome}
+              onProfileUpdate={(updates) => {
+                setUser(prev => ({ ...prev, ...updates }));
+                setProfile(prev => prev ? { ...prev, ...updates } : prev);
+              }}
+              onSignOut={handleSignOut}
+            />
+          </main>
+          <Footer
+            onSpin={() => { setView("home"); setTab("spin"); window.scrollTo(0, 0); }}
+            onBrowse={() => { setView("home"); setTab("browse"); window.scrollTo(0, 0); }}
+            onShowAuth={() => setShowAuth(true)}
           />
-        </main>
+        </>
       )}
 
       {/* Country Page */}
       {view === "country" && country && (
-        <main style={{ padding: "28px 20px 0" }}>
-          <CountryPage country={country} user={user} saved={saved} onSave={handleSave} onRemove={handleRemove} onBack={goHome} />
-        </main>
+        <>
+          <main style={{ padding: "28px 20px 0" }}>
+            <CountryPage country={country} user={user} saved={saved} onSave={handleSave} onRemove={handleRemove} onBack={goHome} />
+          </main>
+          <Footer
+            onSpin={() => { setView("home"); setTab("spin"); window.scrollTo(0, 0); }}
+            onBrowse={() => { setView("home"); setTab("browse"); window.scrollTo(0, 0); }}
+            onShowAuth={() => setShowAuth(true)}
+          />
+        </>
       )}
 
       {/* Home */}
@@ -189,8 +203,8 @@ export default function Home() {
             <>
               {/* Wheel panel */}
               <div id="wheel-section" style={{ background: "#fff", borderTop: "none" }}>
-                <div style={{ padding: "36px 24px 48px" }}>
-                  <div style={{ maxWidth: "720px", margin: "0 auto" }}>
+                <div style={{ padding: "24px 24px 48px" }}>
+                  <div style={{ maxWidth: "860px", margin: "0 auto" }}>
                     {/* Controls */}
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", justifyContent: "center", marginBottom: "24px" }}>
                       <button onClick={doRandomize}

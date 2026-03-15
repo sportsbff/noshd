@@ -519,11 +519,18 @@ export default function MyRestaurants({ user, saved, onSave, onRemove, onBack })
                 onRemove={onRemove}
                 hideMapButton
               />
-              <a href={`https://www.google.com/search?q=${encodeURIComponent(selectedEntry.restaurant.name + " restaurant Chicago")}`}
-                target="_blank" rel="noopener noreferrer"
-                style={{ display: "block", textAlign: "center", margin: "12px 0 0", padding: "8px 18px", background: "var(--noshd-electra)", color: "white", border: "2px solid var(--noshd-electra)", borderRadius: "4px", fontSize: "13px", fontWeight: 700, fontFamily: "var(--font-body)", textTransform: "lowercase", textDecoration: "none" }}>
-                website / reservations ↗
-              </a>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "12px" }}>
+                <a href={`https://www.google.com/search?q=${encodeURIComponent(selectedEntry.restaurant.name + " restaurant Chicago")}`}
+                  target="_blank" rel="noopener noreferrer"
+                  style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "12px", fontWeight: 600, textDecoration: "none", padding: "5px 12px", border: "1.5px solid var(--noshd-border)", borderRadius: "4px", background: "#fff", color: "var(--noshd-muted)", fontFamily: "var(--font-body)", textTransform: "lowercase" }}>
+                  🌐 website
+                </a>
+                <a href={`https://www.google.com/search?q=${encodeURIComponent(selectedEntry.restaurant.name + " Chicago reservations")}`}
+                  target="_blank" rel="noopener noreferrer"
+                  style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "12px", fontWeight: 700, textDecoration: "none", padding: "5px 12px", border: "2px solid #FF5500", borderRadius: "4px", background: "#FF5500", color: "white", fontFamily: "var(--font-body)", textTransform: "lowercase" }}>
+                  📅 reserve a table
+                </a>
+              </div>
             </div>
           </div>
         </div>

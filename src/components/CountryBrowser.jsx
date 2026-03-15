@@ -287,11 +287,16 @@ function BrowseChicagoMap({ goCountry }) {
                 <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                   <a href={`https://www.google.com/search?q=${encodeURIComponent(selectedRestaurant.name + " restaurant Chicago")}`}
                     target="_blank" rel="noopener noreferrer"
-                    style={{ padding: "8px 18px", background: "var(--noshd-electra)", color: "white", border: "2px solid var(--noshd-electra)", borderRadius: "4px", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "var(--font-body)", textTransform: "lowercase", textDecoration: "none", display: "inline-block" }}>
-                    website / reservations ↗
+                    style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "12px", fontWeight: 600, textDecoration: "none", padding: "5px 12px", border: "1.5px solid var(--noshd-border)", borderRadius: "4px", background: "#fff", color: "var(--noshd-muted)", fontFamily: "var(--font-body)", textTransform: "lowercase" }}>
+                    🌐 website
+                  </a>
+                  <a href={`https://www.google.com/search?q=${encodeURIComponent(selectedRestaurant.name + " Chicago reservations")}`}
+                    target="_blank" rel="noopener noreferrer"
+                    style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "12px", fontWeight: 700, textDecoration: "none", padding: "5px 12px", border: "2px solid #FF5500", borderRadius: "4px", background: "#FF5500", color: "white", fontFamily: "var(--font-body)", textTransform: "lowercase" }}>
+                    📅 reserve a table
                   </a>
                   <button onClick={() => { setSelectedRestaurant(null); goCountry(selectedRestaurant.country); }}
-                    style={{ padding: "8px 18px", background: "var(--noshd-tangerine)", color: "white", border: "2px solid var(--noshd-tangerine)", borderRadius: "4px", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "var(--font-body)", textTransform: "lowercase" }}>
+                    style={{ padding: "5px 12px", background: "var(--noshd-tangerine)", color: "white", border: "2px solid var(--noshd-tangerine)", borderRadius: "4px", fontSize: "12px", fontWeight: 700, cursor: "pointer", fontFamily: "var(--font-body)", textTransform: "lowercase" }}>
                     see all {selectedRestaurant.country} restaurants →
                   </button>
                 </div>

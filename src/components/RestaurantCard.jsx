@@ -56,23 +56,17 @@ export default function RestaurantCard({ country, restaurant, user, saved, onSav
         </div>
       )}
 
-      {/* Links */}
-      {(links.web || links.res) && (
-        <div style={{ display: "flex", gap: "8px", marginTop: "12px", paddingTop: "12px", borderTop: "1px solid var(--noshd-border-faint)", flexWrap: "wrap" }}>
-          {links.web && (
-            <a href={links.web} target="_blank" rel="noopener noreferrer"
-              style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "12px", fontWeight: 600, textDecoration: "none", padding: "5px 12px", border: "1.5px solid var(--noshd-border)", borderRadius: "4px", background: "#fff", color: "var(--noshd-muted)", fontFamily: "var(--font-body)", textTransform: "lowercase" }}>
-              🌐 website
-            </a>
-          )}
-          {links.res && (
-            <a href={links.res} target="_blank" rel="noopener noreferrer"
-              style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "12px", fontWeight: 700, textDecoration: "none", padding: "5px 12px", border: "2px solid #FF5500", borderRadius: "4px", background: "#FF5500", color: "white", fontFamily: "var(--font-body)", textTransform: "lowercase" }}>
-              📅 reserve a table
-            </a>
-          )}
-        </div>
-      )}
+      {/* Links — always show website + reservations */}
+      <div style={{ display: "flex", gap: "8px", marginTop: "12px", paddingTop: "12px", borderTop: "1px solid var(--noshd-border-faint)", flexWrap: "wrap" }}>
+        <a href={links.web || `https://www.google.com/search?q=${encodeURIComponent(restaurant.name + " restaurant Chicago")}`} target="_blank" rel="noopener noreferrer"
+          style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "12px", fontWeight: 600, textDecoration: "none", padding: "5px 12px", border: "1.5px solid var(--noshd-border)", borderRadius: "4px", background: "#fff", color: "var(--noshd-muted)", fontFamily: "var(--font-body)", textTransform: "lowercase" }}>
+          🌐 website
+        </a>
+        <a href={links.res || `https://www.google.com/search?q=${encodeURIComponent(restaurant.name + " Chicago reservations")}`} target="_blank" rel="noopener noreferrer"
+          style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "12px", fontWeight: 700, textDecoration: "none", padding: "5px 12px", border: "2px solid #FF5500", borderRadius: "4px", background: "#FF5500", color: "white", fontFamily: "var(--font-body)", textTransform: "lowercase" }}>
+          📅 reserve a table
+        </a>
+      </div>
       {/* Google Maps embed toggle */}
       {!hideMapButton && (
         <>
