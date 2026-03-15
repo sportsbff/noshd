@@ -22,11 +22,11 @@ export default function Hero() {
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "28px" }}>
           <div style={{ display: "flex", gap: "14px" }}>
-            <span style={{ fontSize: "18px", color: "#FFF597", fontFamily: "var(--font-display)", minWidth: "16px" }}>1</span>
-            <p style={{ fontSize: "16px", color: "rgba(255,255,255,0.9)", lineHeight: "1.65", fontFamily: "var(--font-body)", margin: 0 }}>to spin, land somewhere you can&apos;t pronounce, walk into a restaurant you&apos;ve never heard of, and leave a different person.</p>
+            <span style={{ fontSize: "18px", color: "#FFF597", fontFamily: "var(--font-display)", minWidth: "16px" }}>1.</span>
+            <p style={{ fontSize: "16px", color: "rgba(255,255,255,0.9)", lineHeight: "1.65", fontFamily: "var(--font-body)", margin: 0 }}>to have devoured a meal that hit every sense &mdash; the kind that earns the restaurant a permanent spot in your rotation.</p>
           </div>
           <div style={{ paddingLeft: "30px" }}>
-            <span style={{ fontFamily: "var(--font-display)", fontSize: "15px", color: "rgba(255,255,255,0.55)" }}>&ldquo;i had no plans. i noshd. now i have a new favorite country.&rdquo;</span>
+            <span style={{ fontFamily: "var(--font-display)", fontSize: "15px", color: "rgba(255,255,255,0.55)" }}>&ldquo;i noshd vietnamese on argyle and the ph&#7903; broth was doing something spiritual.&rdquo;</span>
           </div>
         </div>
       </div>
