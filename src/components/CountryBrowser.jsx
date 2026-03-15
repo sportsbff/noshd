@@ -284,10 +284,17 @@ function BrowseChicagoMap({ goCountry }) {
                     <div style={{ fontSize: "13px", color: "var(--noshd-charcoal)", fontFamily: "var(--font-body)", fontWeight: 600 }}>{selectedRestaurant.mustTry}</div>
                   </div>
                 )}
-                <button onClick={() => { setSelectedRestaurant(null); goCountry(selectedRestaurant.country); }}
-                  style={{ padding: "8px 18px", background: "var(--noshd-tangerine)", color: "white", border: "2px solid var(--noshd-tangerine)", borderRadius: "4px", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "var(--font-body)", textTransform: "lowercase" }}>
-                  see all {selectedRestaurant.country} restaurants →
-                </button>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  <a href={`https://www.google.com/search?q=${encodeURIComponent(selectedRestaurant.name + " restaurant Chicago")}`}
+                    target="_blank" rel="noopener noreferrer"
+                    style={{ padding: "8px 18px", background: "var(--noshd-electra)", color: "white", border: "2px solid var(--noshd-electra)", borderRadius: "4px", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "var(--font-body)", textTransform: "lowercase", textDecoration: "none", display: "inline-block" }}>
+                    website / reservations ↗
+                  </a>
+                  <button onClick={() => { setSelectedRestaurant(null); goCountry(selectedRestaurant.country); }}
+                    style={{ padding: "8px 18px", background: "var(--noshd-tangerine)", color: "white", border: "2px solid var(--noshd-tangerine)", borderRadius: "4px", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "var(--font-body)", textTransform: "lowercase" }}>
+                    see all {selectedRestaurant.country} restaurants →
+                  </button>
+                </div>
               </div>
               <button onClick={() => setSelectedRestaurant(null)}
                 style={{ background: "var(--noshd-cream)", border: "none", borderRadius: "50%", width: "28px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, marginLeft: "12px" }}>

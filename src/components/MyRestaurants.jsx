@@ -519,6 +519,11 @@ export default function MyRestaurants({ user, saved, onSave, onRemove, onBack })
                 onRemove={onRemove}
                 hideMapButton
               />
+              <a href={`https://www.google.com/search?q=${encodeURIComponent(selectedEntry.restaurant.name + " restaurant Chicago")}`}
+                target="_blank" rel="noopener noreferrer"
+                style={{ display: "block", textAlign: "center", margin: "12px 0 0", padding: "8px 18px", background: "var(--noshd-electra)", color: "white", border: "2px solid var(--noshd-electra)", borderRadius: "4px", fontSize: "13px", fontWeight: 700, fontFamily: "var(--font-body)", textTransform: "lowercase", textDecoration: "none" }}>
+                website / reservations ↗
+              </a>
             </div>
           </div>
         </div>

@@ -65,7 +65,7 @@ export default function SpinWheel({ countries, onResult }) {
       const isLight = segColor === "#FFB000" || segColor === "#A4DDFF" || segColor === "#F4F7FC";
 
       // Measure text for pill — responsive font size based on segment and wheel size
-      const maxFontSize = n > 16 ? 10 : n > 12 ? 11 : 12;
+      const maxFontSize = n > 16 ? 13 : n > 12 ? 14 : 15;
       const label = `${COUNTRY_DATA[country]?.flag || ""} ${country}`;
 
       // Max text width scales with wheel radius — never exceed segment length
@@ -115,8 +115,8 @@ export default function SpinWheel({ countries, onResult }) {
     const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
     // Responsive: cap at 400px but shrink to fit container
     const container = canvas.parentElement;
-    const maxW = container ? Math.min(620, container.clientWidth - 16) : 620;
-    const size = Math.max(320, maxW);
+    const maxW = container ? Math.min(820, container.clientWidth - 16) : 820;
+    const size = Math.max(360, maxW);
     canvas.width = size * dpr;
     canvas.height = size * dpr;
     canvas.style.width = `${size}px`;

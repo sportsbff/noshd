@@ -55,7 +55,7 @@ export default function Footer({ onSpin, onBrowse, onShowAuth }) {
             <div>
               <div style={{ fontSize: "11px", fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: "10px", fontFamily: "var(--font-body)" }}>contact</div>
               <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                <a href="mailto:hello@noshd.com" style={{ fontSize: "13px", color: "rgba(255,255,255,0.6)", fontFamily: "var(--font-body)", textDecoration: "none" }}>hello@noshd.com</a>
+                <a href="mailto:noshdapp@gmail.com" style={{ fontSize: "13px", color: "rgba(255,255,255,0.6)", fontFamily: "var(--font-body)", textDecoration: "none" }}>noshdapp@gmail.com</a>
                 <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.6)", fontFamily: "var(--font-body)" }}>Chicago, IL</span>
               </div>
             </div>
