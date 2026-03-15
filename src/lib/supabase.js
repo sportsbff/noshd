@@ -46,12 +46,17 @@ export async function getSession() {
 
 export async function getProfile(userId) {
   if (!supabase) return null;
-  const { data } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", userId)
-    .single();
-  return data;
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .single();
+    if (error) return null;
+    return data;
+  } catch {
+    return null;
+  }
 }
 
 export async function updateProfile(userId, updates) {
