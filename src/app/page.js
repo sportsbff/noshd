@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Shuffle, SlidersHorizontal } from "lucide-react";
 import { ALL_COUNTRIES, COUNTRY_DATA } from "@/data/countries";
 import { shuffle } from "@/lib/utils";
-import { supabase, getSession, getProfile, loadSaved, saveToDB, removeFromDB, signOut as supaSignOut } from "@/lib/supabase";
+import { supabase, getSession, getProfile, loadSaved, saveToDB, removeFromDB, signOut as supaSignOut, onAuthStateChange } from "@/lib/supabase";
 
 import Nav from "@/components/Nav";
 import Hero from "@/components/Hero";
@@ -31,21 +31,45 @@ export default function Home() {
   const [wheelFilter, setWheelFilter] = useState("all");
   const [browseView, setBrowseView] = useState("grid");
 
-  // Restore session from Supabase on mount
+  // Restore session from Supabase on mount + listen for auth changes
   useEffect(() => {
     let cancelled = false;
-    getSession().then(async ({ data }) => {
-      if (cancelled || !data?.session?.user) return;
-      const u = data.session.user;
-      const p = await getProfile(u.id);
-      const name = p?.name || u.user_metadata?.name || u.email?.split("@")[0] || "User";
-      const tier = p?.tier || u.user_metadata?.tier || "free";
-      setUser({ name, tier, email: u.email, id: u.id });
-      setProfile(p || { id: u.id, name, tier, email: u.email });
-      const savedData = await loadSaved(u.id);
+
+    const restoreUser = async (sessionUser) => {
+      if (cancelled || !sessionUser) return;
+      const p = await getProfile(sessionUser.id);
+      const name = p?.name || sessionUser.user_metadata?.name || sessionUser.email?.split("@")[0] || "User";
+      const tier = p?.tier || sessionUser.user_metadata?.tier || "free";
+      if (!cancelled) {
+        setUser({ name, tier, email: sessionUser.email, id: sessionUser.id });
+        setProfile(p || { id: sessionUser.id, name, tier, email: sessionUser.email });
+      }
+      const savedData = await loadSaved(sessionUser.id);
       if (!cancelled) setSaved(savedData);
+    };
+
+    // Check existing session first
+    getSession().then(({ data }) => {
+      if (data?.session?.user) restoreUser(data.session.user);
     });
-    return () => { cancelled = true; };
+
+    // Listen for auth state changes (handles token refresh, sign in/out)
+    const { data: { subscription } } = onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session?.user) {
+        restoreUser(session.user);
+      } else if (event === "SIGNED_OUT") {
+        if (!cancelled) {
+          setUser(null);
+          setProfile(null);
+          setSaved({});
+        }
+      } else if (event === "TOKEN_REFRESHED" && session?.user) {
+        // Session was refreshed — user stays logged in
+        restoreUser(session.user);
+      }
+    });
+
+    return () => { cancelled = true; subscription?.unsubscribe(); };
   }, []);
 
   const handleAuth = useCallback((u) => {

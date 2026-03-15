@@ -4,7 +4,13 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 
 export const supabase = supabaseUrl && supabaseAnonKey
-  ? createClient(supabaseUrl, supabaseAnonKey)
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
+    })
   : null;
 
 // ---- Auth helpers ----
@@ -17,21 +23,42 @@ export async function signUp(email, password, name, tier) {
     options: { data: { name, tier } },
   });
   if (error) return { error };
-  // Upsert profile row
+  // Create profile row — wait a tick for session to be established
   if (data.user) {
-    await supabase.from("profiles").upsert({
-      id: data.user.id,
-      name,
-      tier,
-      email,
-    });
+    setTimeout(async () => {
+      try {
+        await supabase.from("profiles").upsert({
+          id: data.user.id,
+          name,
+          tier,
+          email,
+        });
+      } catch {
+        // Profile will be created on next sign-in if this fails
+      }
+    }, 500);
   }
   return { data };
 }
 
 export async function signIn(email, password) {
   if (!supabase) return { error: { message: "Supabase not configured" } };
-  return supabase.auth.signInWithPassword({ email, password });
+  const result = await supabase.auth.signInWithPassword({ email, password });
+  // Ensure profile exists on sign-in
+  if (result.data?.user) {
+    const u = result.data.user;
+    try {
+      await supabase.from("profiles").upsert({
+        id: u.id,
+        name: u.user_metadata?.name || u.email?.split("@")[0] || "User",
+        tier: u.user_metadata?.tier || "free",
+        email: u.email,
+      }, { onConflict: "id" });
+    } catch {
+      // Non-critical
+    }
+  }
+  return result;
 }
 
 export async function signOut() {
@@ -42,6 +69,12 @@ export async function signOut() {
 export async function getSession() {
   if (!supabase) return { data: { session: null } };
   return supabase.auth.getSession();
+}
+
+// Listen for auth state changes (sign in, sign out, token refresh)
+export function onAuthStateChange(callback) {
+  if (!supabase) return { data: { subscription: { unsubscribe: () => {} } } };
+  return supabase.auth.onAuthStateChange(callback);
 }
 
 export async function getProfile(userId) {
@@ -76,7 +109,6 @@ export async function updatePassword(newPassword) {
 
 export async function deleteAccount(userId) {
   if (!supabase) return { error: { message: "Supabase not configured" } };
-  // Delete saved restaurants and profile — the user row is handled by Supabase auth
   await supabase.from("saved_restaurants").delete().eq("user_id", userId);
   await supabase.from("profiles").delete().eq("id", userId);
   return supabase.auth.signOut();
