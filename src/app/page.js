@@ -155,8 +155,8 @@ export default function Home() {
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--noshd-white)", fontFamily: "var(--font-body)", color: "var(--noshd-charcoal)" }}>
-      {/* Ad — above header */}
-      <AdBanner size="leaderboard" user={user} />
+      {/* Ad — above header (only on content pages, not account/auth) */}
+      {view !== "account" && <AdBanner size="leaderboard" user={user} />}
 
       <Nav user={user} savedCount={savedCount} onShowAuth={() => setShowAuth(true)} onGoHome={goHome}
         onMyRestaurants={() => { setTab("my"); setView("home"); }}
@@ -316,7 +316,7 @@ export default function Home() {
           {tab === "my" && user && (
             <div style={{ background: "#fff", padding: "28px 20px 0", animation: "fadeUp 0.3s ease" }}>
               <MyRestaurants user={user} saved={saved} onSave={handleSave} onRemove={handleRemove} onBack={goHome} />
-              <AdBanner size="rectangle" user={user} />
+              {saved.length > 0 && <AdBanner size="rectangle" user={user} />}
             </div>
           )}
 
